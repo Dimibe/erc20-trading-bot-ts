@@ -1,7 +1,7 @@
 {
     "MAX_TRADES": 5,            
     "BUY_POWER": "1",          
-    "DROP_BEFORE_BUY": 0.15,
+    "DROP_BEFORE_BUY": 0.1,
     "SLIPPAGE": 0.5,
     "GWEI": "30",
     "GAS_LIMIT": 200000,

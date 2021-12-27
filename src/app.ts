@@ -175,8 +175,12 @@ async function main() {
           trades++;
           buyPrice = conversion;
           logger.info(`Buy price is ${buyPrice}$`);
-          await buy();
-          currentState = BotState.SELL;
+          try {
+            await buy();
+            currentState = BotState.SELL;
+          } catch (e) {
+            logger.error(e);
+          }
           tradeOngoing = false;
         }
         break;
@@ -189,8 +193,12 @@ async function main() {
         );
         if (sellPrice > buyPrice && !tradeOngoing) {
           tradeOngoing = true;
-          await sell();
-          currentState = BotState.BUY;
+          try {
+            await sell();
+            currentState = BotState.BUY;
+          } catch (e) {
+            logger.error(e);
+          }
           tradeOngoing = false;
         }
         break;
@@ -250,11 +258,7 @@ async function buy() {
       options.STABLE_TOKEN_DIGITS,
     )} ${options.STABLE_TOKEN_NAME} ...`,
   );
-  try {
-    await swap(amountIn, [STABLE_TOKEN, TRADE_TOKEN], stableTokenContract);
-  } catch (e) {
-    logger.error(e);
-  }
+  await swap(amountIn, [STABLE_TOKEN, TRADE_TOKEN], stableTokenContract);
 }
 
 async function sell() {
@@ -266,11 +270,7 @@ async function sell() {
       options.TRADE_TOKEN_NAME
     } for ${options.STABLE_TOKEN_NAME}...`,
   );
-  try {
-    await swap(amountIn, [TRADE_TOKEN, STABLE_TOKEN], tradeTokenContract);
-  } catch (e) {
-    logger.error(e);
-  }
+  await swap(amountIn, [TRADE_TOKEN, STABLE_TOKEN], tradeTokenContract);
 }
 
 async function info(logLevel: string = 'info') {
