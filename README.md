@@ -19,20 +19,20 @@ Configurations can be made in the file `src/config/options.json`.
 Following options are available: 
  |Name|Function|Default|
  |----|----|----|
- |MAX_TRADES|maximum number of trades the bot executes|5|
+ |MAX_TRADES|maximum number of trades the bot executes|5 trades|
  |BUY_POWER|Buy power in $ per trade|1$|
- |DROP_BEFORE_BUY|Price drop required before buy||
+ |DROP_BEFORE_BUY|Price drop required before buy|0.1%|
  |SLIPPAGE|Change from price in % to buy token|0.5%|
- |GWEI|change from price in % to buy token|30|
+ |GWEI|change from price in % to buy token|30 gwei|
  |GAS_LIMIT|change from price in % to buy token|200000|
  |COIN_NAME|Name of the network coin|Matic|
- |STABLE_TOKEN|Address of the stable token|USDC address|
+ |STABLE_TOKEN|Address of the stable token|USD Coin address|
  |STABLE_TOKEN_NAME|Name of the stable token|USDC|
  |STABLE_TOKEN_DIGITS|Digits of the stable token|6|
  |TRADE_TOKEN|Address of the traded token|Wrapped Matic address|
- |TRADE_TOKEN_NAME|Name of the traded token|wmatic|
+ |TRADE_TOKEN_NAME|Name of the traded token|WMATIC|
  |TRADE_TOKEN_DIGITS|Digits of the traded token|18|
- |PAIR_ADDRESS|Address of the stable/traded token pair|usdc/wmatic pair address|
+ |PAIR_ADDRESS|Address of the stable/traded token pair|USDC/WMATIC pair address|
  |ROUTER_ADDRESS|Address of the router/DEX|Quickswap address|
 
 
