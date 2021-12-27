@@ -127,4 +127,4 @@ dist
 .pnp.*
 
 # project sprcific 
-src/secrets.json
+src/config/secrets.json
