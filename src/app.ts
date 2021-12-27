@@ -1,10 +1,9 @@
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { WebSocketProvider } from '@ethersproject/providers';
 import { BigNumber, Contract, utils, Wallet } from 'ethers';
-import secrets from './secrets.json';
-import options from './config/options.json';
 import winston, { format } from 'winston';
-import { lchown } from 'fs';
+import secrets from './config/secrets.json';
+import options from './config/options.json';
 
 const winstonConfig = {
   levels: {
