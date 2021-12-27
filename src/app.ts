@@ -283,7 +283,7 @@ async function info(logLevel: string = 'info') {
   logger.log(logLevel, `Balance Information:`);
   logger.log(
     logLevel,
-    `${utils.formatUnits(coinBalance, options.TRADE_TOKEN_DIGITS)} ${
+    `${utils.formatUnits(coinBalance, options.COIN_DIGITS)} ${
       options.COIN_NAME
     }`,
   );

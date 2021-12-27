@@ -26,6 +26,7 @@ Following options are available:
  |GWEI|change from price in % to buy token|30 gwei|
  |GAS_LIMIT|change from price in % to buy token|200000|
  |COIN_NAME|Name of the network coin|Matic|
+ |COIN_DIGITS|Digits of the network coin|18|
  |STABLE_TOKEN|Address of the stable token|USD Coin address|
  |STABLE_TOKEN_NAME|Name of the stable token|USDC|
  |STABLE_TOKEN_DIGITS|Digits of the stable token|6|
