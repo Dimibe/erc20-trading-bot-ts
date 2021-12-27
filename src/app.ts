@@ -1,20 +1,68 @@
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { BigNumber, BigNumberish, Contract, ethers, Transaction } from 'ethers';
+import { WebSocketProvider } from '@ethersproject/providers';
+import { BigNumber, Contract, utils, Wallet } from 'ethers';
 import secrets from './secrets.json';
+import options from './config/options.json';
+import winston, { format } from 'winston';
+import { lchown } from 'fs';
 
-const WMATIC = '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270';
-//const USDT = '0xc2132d05d31c914a87c6611c10748aeb04b58e8f';
-const USDC = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
+const winstonConfig = {
+  levels: {
+    error: 0,
+    transaction: 1,
+    info: 2,
+    debug: 3,
+  },
+  colors: {
+    error: 'red',
+    transaction: 'yellow',
+    info: 'yellow',
+    debug: 'grey',
+  },
+};
 
-//const pair_usdt = '0x604229c960e5CACF2aaEAc8Be68Ac07BA9dF81c3';
-const pair = '0x6e7a5FAFcec6BB1e78bAE2A1F0B612012BF14827';
-const router = '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff';
+const logger: any = winston.createLogger({
+  levels: winstonConfig.levels,
+  format: format.combine(
+    winston.format.splat(),
+    format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    format.printf((info) => {
+      return `${info.timestamp} [${info.level.toUpperCase()}]: ${info.message}`;
+    }),
+    //   format.colorize({ all: true, colors: winstonConfig.colors }),
+  ),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: 'logs/server.log' }),
+    new winston.transports.File({
+      level: 'transaction',
+      filename: 'logs/transaction.log',
+    }),
+    new winston.transports.File({
+      level: 'error',
+      filename: 'logs/error.log',
+    }),
+  ],
+});
 
-const provider = new ethers.providers.WebSocketProvider(secrets.wss);
-const wallet = new ethers.Wallet(secrets.privateKey);
+const MAX_TRADES = options.MAX_TRADES; // Max numbers of trades the bot executes (swap and swap back counts as one trade).
+const BUY_POWER = options.BUY_POWER; // Dollar value to buy.
+const DROP_BEFORE_BUY = options.DROP_BEFORE_BUY; // Drop in % the price needs to fall before the bot starts a trade.
+
+const SLIPPAGE = options.SLIPPAGE;
+const GWEI = options.GWEI;
+const GAS_LIMIT = options.GAS_LIMIT;
+
+const STABLE_TOKEN = options.STABLE_TOKEN;
+const TRADE_TOKEN = options.TRADE_TOKEN;
+const pair = options.PAIR_ADDRESS;
+const router = options.ROUTER_ADDRESS;
+
+const provider = new WebSocketProvider(secrets.wss);
+const wallet = new Wallet(secrets.privateKey);
 const signer = wallet.connect(provider);
 
-const pairContract = new ethers.Contract(
+const pairContract = new Contract(
   pair,
   [
     'event Swap(address indexed sender, uint amount0In, uint amount1In, uint amount0Out,uint amount1Out,address indexed to)',
@@ -23,7 +71,7 @@ const pairContract = new ethers.Contract(
   signer,
 );
 
-const routerContract = new ethers.Contract(
+const routerContract = new Contract(
   router,
   [
     'function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts)',
@@ -32,8 +80,8 @@ const routerContract = new ethers.Contract(
   signer,
 );
 
-const usdcContract = new ethers.Contract(
-  USDC,
+const stableTokenContract = new Contract(
+  STABLE_TOKEN,
   [
     'function approve(address spender, uint256 amount) external returns (bool)',
     'function balanceOf(address) view returns (uint)',
@@ -41,8 +89,8 @@ const usdcContract = new ethers.Contract(
   signer,
 );
 
-const wmaticContract = new ethers.Contract(
-  WMATIC,
+const tradeTokenContract = new Contract(
+  TRADE_TOKEN,
   [
     'function approve(address spender, uint256 amount) external returns (bool)',
     'function balanceOf(address) view returns (uint)',
@@ -50,63 +98,107 @@ const wmaticContract = new ethers.Contract(
   signer,
 );
 
-enum BotState {
+const enum BotState {
   BUY = 1,
   SELL = 2,
-};
-const MAX_TRADES = 5;
-const BUY_POWER = '1'; // USDC value to buy.
+}
 
-let trades = 0;
-let tradeOngoing = false;
-let lastPrice: number;
-let buyPrice: number;
-let currentState = BotState.BUY;
+// Start bot
+main();
 
-console.log('Bot started!');
-pairContract.on('Swap', async () => {
-  if (tradeOngoing) return;
-  const pairData = await pairContract.getReserves();
-  const maticReserve = ethers.utils.formatUnits(pairData[0], 18);
-  const usdcReserve = ethers.utils.formatUnits(pairData[1], 6);
-  const conversion = Number(usdcReserve) / Number(maticReserve);
+async function main() {
+  let trades = 0;
+  let tradeOngoing = false;
+  let lastPrice: number;
+  let high: number;
+  let low: number;
+  let buyPrice: number;
+  let currentState = BotState.BUY;
 
-  console.log('Swap happend.');
-  console.log(`Time: ${new Date(pairData[2] * 1000)}`);
-  console.log(
-    `Price: ${conversion} $ / ${lastPrice ? conversion - lastPrice : 0} $ `,
+  logger.info('Bot started!');
+  logger.info(
+    `Max trades set to ${MAX_TRADES} and Buy Power per trade is set to ${BUY_POWER}$`,
   );
+  await info();
+  pairContract.on('Swap', async () => {
+    if (tradeOngoing) return;
+    const pairData = await pairContract.getReserves();
+    const stableTokenReserve = utils.formatUnits(
+      pairData[1],
+      options.STABLE_TOKEN_DIGITS,
+    );
+    const tradeTokenReserve = utils.formatUnits(
+      pairData[0],
+      options.TRADE_TOKEN_DIGITS,
+    );
+    const conversion = Number(stableTokenReserve) / Number(tradeTokenReserve);
+    const priceChange = lastPrice ? conversion - lastPrice : 0;
 
-  switch (currentState) {
-    case BotState.BUY:
-      const priceDown: boolean = lastPrice != undefined && conversion < lastPrice;
-      if (priceDown && trades < MAX_TRADES) {
-        tradeOngoing = true;
-        trades++;
-        buyPrice = conversion;
-        console.log(`Buy price is ${buyPrice}`);
-        await buy();
-        currentState = BotState.SELL;
-        tradeOngoing = false;
-      }
-      break;
-    case BotState.SELL:
-      const sellPrice = conversion - conversion / 200;
-      console.log(
-        `Evaluating sell for price ${sellPrice} wich is ${
-          sellPrice - buyPrice
-        } away from ${buyPrice}`,
+    if (lastPrice == undefined) {
+      lastPrice = conversion;
+      high = conversion;
+      low = conversion;
+    }
+
+    logger.info(
+      `Price: ${conversion}$ / Change: ${priceChange}$ / Low: ${low}$ / High: ${high}$`,
+    );
+
+    if (priceChange === 0) return;
+
+    if (conversion > high) {
+      high = conversion;
+      logger.info(
+        `New high reached, low is ${low}$ which is a difference of ${
+          (high - low) / (high / 100)
+        }%`,
       );
-      if (sellPrice > buyPrice && !tradeOngoing) {
-        tradeOngoing = true;
-        await sell();
-        currentState = BotState.BUY;
-        tradeOngoing = false;
-      }
-      break;
-  }
-  lastPrice = conversion;
-});
+    } else if (conversion < low) {
+      low = conversion;
+      logger.info(
+        `New low reached, high is ${high}$ which is a difference of ${
+          (high - low) / (high / 100)
+        }%`,
+      );
+    }
+
+    switch (currentState) {
+      case BotState.BUY:
+        let priceTaget = high - (high / 100) * DROP_BEFORE_BUY;
+        let priceTargetMatched = conversion < priceTaget;
+        logger.info(
+          `Current price is ${
+            conversion - priceTaget
+          }$ away from price taget ${priceTaget}$`,
+        );
+        if (priceTargetMatched && trades < MAX_TRADES) {
+          tradeOngoing = true;
+          trades++;
+          buyPrice = conversion;
+          logger.info(`Buy price is ${buyPrice}$`);
+          await buy();
+          currentState = BotState.SELL;
+          tradeOngoing = false;
+        }
+        break;
+      case BotState.SELL:
+        const sellPrice = conversion - (conversion / 100) * SLIPPAGE;
+        logger.info(
+          `Sell price ${sellPrice}$ is ${
+            sellPrice - buyPrice
+          }$ away from buy price ${buyPrice}$`,
+        );
+        if (sellPrice > buyPrice && !tradeOngoing) {
+          tradeOngoing = true;
+          await sell();
+          currentState = BotState.BUY;
+          tradeOngoing = false;
+        }
+        break;
+    }
+    lastPrice = conversion;
+  });
+}
 
 async function swap(
   amountIn: BigNumber,
@@ -117,72 +209,95 @@ async function swap(
     amountIn,
     pair,
   );
-  const amountOutMin = amounts[1].sub(amounts[1].div(200));
+  const amountOutMin = amounts[1].sub(amounts[1].div(100 / SLIPPAGE));
+
   const options = {
-    gasPrice: ethers.utils.parseUnits('35', 'gwei'),
-    gasLimit: 200000,
+    gasPrice: utils.parseUnits(GWEI, 'gwei'),
+    gasLimit: GAS_LIMIT,
   };
 
-  console.log(`
-  ******************
-  Amounts: ${amounts}
-  USDC In: ${amountIn}
-  WMATIC Out Min: ${amountOutMin}
-  ******************
-  `);
-
-  console.log('Swapping...');
+  logger.transaction('Swapping...');
 
   const approveTx: TransactionResponse = await tokenContract.approve(
     router,
     amountIn,
   );
   await approveTx.wait();
-  console.log(`Swap approved. Hash: ${approveTx.hash}`);
+  logger.transaction(`Swap approved. Hash: ${approveTx.hash}`);
 
-  const swapTx: TransactionResponse = await routerContract.swapExactTokensForTokens(
-    amountIn,
-    amountOutMin,
-    pair,
-    wallet.address,
-    Date.now() + 1000 * 60 * 10,
-    options,
-  );
-  console.log(`Swap transaction hash: ${swapTx.hash}`);
+  const swapTx: TransactionResponse =
+    await routerContract.swapExactTokensForTokens(
+      amountIn,
+      amountOutMin,
+      pair,
+      wallet.address,
+      Date.now() + 1000 * 60 * 10,
+      options,
+    );
+  logger.transaction(`Swap transaction hash: ${swapTx.hash}`);
   await swapTx.wait();
-  console.log('Swap done!');
+  logger.transaction('Swap done!');
+  await info('transaction');
 }
 
 async function buy() {
-  const amountIn: BigNumber = ethers.utils.parseUnits(BUY_POWER, 6);
-  console.log(
-    `Buying wmatic for ${ethers.utils.formatUnits(amountIn, 6)} usdc...`,
+  const amountIn: BigNumber = utils.parseUnits(
+    BUY_POWER,
+    options.STABLE_TOKEN_DIGITS,
   );
-  await swap(amountIn, [USDC, WMATIC], usdcContract);
+  logger.transaction(
+    `Buying ${options.TRADE_TOKEN_NAME} for ${utils.formatUnits(
+      amountIn,
+      options.STABLE_TOKEN_DIGITS,
+    )} ${options.STABLE_TOKEN_NAME} ...`,
+  );
+  try {
+    await swap(amountIn, [STABLE_TOKEN, TRADE_TOKEN], stableTokenContract);
+  } catch (e) {
+    logger.error(e);
+  }
 }
 
 async function sell() {
-  const amountIn: BigNumber = await wmaticContract.balanceOf(wallet.address);
-  console.log(
-    `Selling ${ethers.utils.formatUnits(amountIn, 18)} wmatic for usdt...`,
+  const amountIn: BigNumber = await tradeTokenContract.balanceOf(
+    wallet.address,
   );
-  await swap(amountIn, [WMATIC, USDC], wmaticContract);
+  logger.transaction(
+    `Selling ${utils.formatUnits(amountIn, options.TRADE_TOKEN_DIGITS)} ${
+      options.TRADE_TOKEN_NAME
+    } for ${options.STABLE_TOKEN_NAME}...`,
+  );
+  try {
+    await swap(amountIn, [TRADE_TOKEN, STABLE_TOKEN], tradeTokenContract);
+  } catch (e) {
+    logger.error(e);
+  }
 }
 
-async function info() {
-  const matic_balance = await provider.getBalance(wallet.address);
-  const block = await provider.getBlockNumber();
+async function info(logLevel: string = 'info') {
+  const coinBalance = await provider.getBalance(wallet.address);
+  const stableTokenBalance = await stableTokenContract.balanceOf(
+    wallet.address,
+  );
+  const tradeTokenBalance = await tradeTokenContract.balanceOf(wallet.address);
 
-  const usdc_balance = await usdcContract.balanceOf(wallet.address);
-
-  const wmatic_balance = await wmaticContract.balanceOf(wallet.address);
-
-  console.log(ethers.utils.formatUnits(usdc_balance, 6));
-
-  console.log(`
-    BlockNumber: ${block}
-    MATIC Balance: ${matic_balance}
-    USDC Balance: ${usdc_balance}
-    WMATIC Balance: ${wmatic_balance}
-  `);
+  logger.log(logLevel, `Balance Information:`);
+  logger.log(
+    logLevel,
+    `${utils.formatUnits(coinBalance, options.TRADE_TOKEN_DIGITS)} ${
+      options.COIN_NAME
+    }`,
+  );
+  logger.log(
+    logLevel,
+    `${utils.formatUnits(stableTokenBalance, options.STABLE_TOKEN_DIGITS)} ${
+      options.STABLE_TOKEN_NAME
+    }`,
+  );
+  logger.log(
+    logLevel,
+    `${utils.formatUnits(tradeTokenBalance, options.TRADE_TOKEN_DIGITS)} ${
+      options.TRADE_TOKEN_NAME
+    }`,
+  );
 }
