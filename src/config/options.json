@@ -1,18 +1,31 @@
 {
-    "MAX_TRADES": 5,            
-    "BUY_POWER": "1",          
-    "DROP_BEFORE_BUY": 0.1,
-    "SLIPPAGE": 0.5,
-    "GWEI": "30",
-    "GAS_LIMIT": 200000,
-    "COIN_NAME": "MATIC",
-    "COIN_DIGITS": 18,
-    "STABLE_TOKEN": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-    "STABLE_TOKEN_NAME": "USDC",
-    "STABLE_TOKEN_DIGITS": 6,
-    "TRADE_TOKEN": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
-    "TRADE_TOKEN_NAME": "WMATIC",
-    "TRADE_TOKEN_DIGITS": 18,
-    "PAIR_ADDRESS": "0x6e7a5FAFcec6BB1e78bAE2A1F0B612012BF14827",
-    "ROUTER_ADDRESS":"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"
+  "strategy": "gridTrading",
+  "slippage": 0.5,
+  "gwei": 32,
+  "gasLimit": 250000,
+  "coinName": "MATIC",
+  "coinDigits": 18,
+  "stalbeToken": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+  "stalbeTokenName": "USDC",
+  "stalbeTokenDigits": 6,
+  "tradeToken": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+  "tradeTokenName": "WMATIC",
+  "tradeTokenDigits": 18,
+  "pairAddress": "0x6e7a5FAFcec6BB1e78bAE2A1F0B612012BF14827",
+  "routerAddress": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
+  "strategies": {
+    "gridTrading": {
+      "range": {
+        "min": 2.35,
+        "max": 2.65
+      },
+      "totalBuyPower": 10,
+      "gridMargin": 0.5
+    },
+    "scalping": {
+      "maxTrades": 5,
+      "buyPower": 1,
+      "dropBeforeBuy": 0.01
+    }
+  }
 }

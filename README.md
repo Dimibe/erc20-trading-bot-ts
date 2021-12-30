@@ -19,25 +19,50 @@ Configurations can be made in the file `src/config/options.json`.
 Following options are available: 
  |Name|Function|Default|
  |----|----|----|
- |MAX_TRADES|maximum number of trades the bot executes|5 trades|
- |BUY_POWER|Buy power in $ per trade|1$|
- |DROP_BEFORE_BUY|Price drop required before buy|0.1%|
- |SLIPPAGE|Change from price in % to buy token|0.5%|
- |GWEI|change from price in % to buy token|30 gwei|
- |GAS_LIMIT|change from price in % to buy token|200000|
- |COIN_NAME|Name of the network coin|Matic|
- |COIN_DIGITS|Digits of the network coin|18|
- |STABLE_TOKEN|Address of the stable token|USD Coin address|
- |STABLE_TOKEN_NAME|Name of the stable token|USDC|
- |STABLE_TOKEN_DIGITS|Digits of the stable token|6|
- |TRADE_TOKEN|Address of the traded token|Wrapped Matic address|
- |TRADE_TOKEN_NAME|Name of the traded token|WMATIC|
- |TRADE_TOKEN_DIGITS|Digits of the traded token|18|
- |PAIR_ADDRESS|Address of the stable/traded token pair|USDC/WMATIC pair address|
- |ROUTER_ADDRESS|Address of the router/DEX|Quickswap address|
+ |strategy|The strategy which the bot should use|Grid Trading|
+ |slippage|Change from price in % to buy token|0.5%|
+ |gwei|change from price in % to buy token|30 gwei|
+ |gasLimit|change from price in % to buy token|200000|
+ |coinName|Name of the network coin|Matic|
+ |coinDigits|Digits of the network coin|18|
+ |stableToken|Address of the stable token|USD Coin address|
+ |stableTokenName|Name of the stable token|USDC|
+ |stableTokenDigits|Digits of the stable token|6|
+ |tradeToken|Address of the traded token|Wrapped Matic address|
+ |tradeTokenName|Name of the traded token|WMATIC|
+ |tradeTokenDigits|Digits of the traded token|18|
+ |pairAddress|Address of the stable/traded token pair|USDC/WMATIC pair address|
+ |routerAddress|Address of the router/DEX|Quickswap address|
+ |strategies|Options for the different strategies|-|
+
+### Strategies
+
+#### Grid Trading
+
+##### Options
+ |Name|Function|Default|
+ |----|----|----|
+ |range|min and max price in which the bot trades|2.35 - 2.65|
+ |totalBuyPower|Total amount to invest|10|
+ |gridMargin|Size of grids in percent|0.5%|
+
+##### How it works
+
+- The bot calculates number of grids in the range.
+- The bot calculates the initial grid and buys initial tokens.
+- Whenever the price falls one grid the bot buys and when the price goes up one grid the bot sells. 
 
 
-### Strategy of the bot
+#### Scalping
+
+##### Options
+ |Name|Function|Default|
+ |----|----|----|
+ |maxTrades|maximum number of trades the bot executes|5 trades|
+ |buyPower|Buy power in $ per trade|1$|
+ |dropBeforeBuy|Price drop required before buy|0.1%|
+
+##### How it works
 
 - The bot observes the quickswap swaps of the usdc/wmatic pair.
 - If wmatic price goes down, the bot buys wmatic for a defined buying power. 
