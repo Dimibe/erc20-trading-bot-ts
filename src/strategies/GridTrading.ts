@@ -1,6 +1,5 @@
 import { logger } from '../logger';
-import options from '../config/options.json';
-import * as web3 from '../Web3Service';
+import { web3 } from '../Web3Service';
 import { Strategy } from './Strategy';
 
 export class GridTrading implements Strategy {

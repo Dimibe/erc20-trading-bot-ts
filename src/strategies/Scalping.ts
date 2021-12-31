@@ -1,6 +1,5 @@
 import { BigNumber, utils } from 'ethers';
 import { logger } from '../logger';
-import options from '../config/options.json';
 import {
   routerContract,
   SLIPPAGE,
@@ -9,7 +8,7 @@ import {
   TRADE_TOKEN,
   wallet,
 } from '../const';
-import * as web3 from '../Web3Service';
+import { web3 } from '../Web3Service';
 import { Strategy } from './Strategy';
 
 export class Scalping implements Strategy {
@@ -91,7 +90,7 @@ export class Scalping implements Strategy {
         );
         const amountOutMin = amounts[1].sub(amounts[1].div(100 / SLIPPAGE));
         let outMinNumber = Number(
-          utils.formatUnits(amountOutMin, options.stalbeTokenDigits),
+          utils.formatUnits(amountOutMin, web3.stableTokenDecimals),
         );
         logger.info(
           `Min Out would be ${outMinNumber} which is ${
@@ -102,7 +101,7 @@ export class Scalping implements Strategy {
           this.tradeOngoing = true;
           try {
             await web3.sell(
-              Number(utils.formatUnits(amountIn, options.tradeTokenDigits)),
+              Number(utils.formatUnits(amountIn, web3.tradeTokenDecimals)),
               conversion,
             );
             this.currentState = BotState.BUY;

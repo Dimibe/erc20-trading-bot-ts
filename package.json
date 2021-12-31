@@ -8,6 +8,7 @@
     "start": "tsc && node dist/app.js"
   },
   "dependencies": {
+    "axios": "^0.24.0",
     "ethers": "^5.5.2",
     "winston": "^3.3.3"
   },

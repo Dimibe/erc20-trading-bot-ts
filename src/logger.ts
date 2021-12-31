@@ -4,8 +4,9 @@ const defaultLogConfig = {
   levels: {
     error: 0,
     transaction: 1,
-    info: 2,
-    debug: 3,
+    warn: 2,
+    info: 3,
+    debug: 4,
   },
 };
 
