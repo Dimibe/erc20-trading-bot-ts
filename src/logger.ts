@@ -1,30 +1,25 @@
-import winston, { format } from 'winston';
+import winston, { format, Logger } from 'winston';
 
-const winstonConfig = {
+const defaultLogConfig = {
   levels: {
     error: 0,
     transaction: 1,
     info: 2,
     debug: 3,
   },
-  colors: {
-    error: 'red',
-    transaction: 'yellow',
-    info: 'yellow',
-    debug: 'grey',
-  },
 };
 
+const logFormat = format.combine(
+  winston.format.splat(),
+  format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  format.printf((info) => {
+    return `${info.timestamp} [${info.level.toUpperCase()}]: ${info.message}`;
+  }),
+);
+
 export const logger: any = winston.createLogger({
-  levels: winstonConfig.levels,
-  format: format.combine(
-    winston.format.splat(),
-    format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    format.printf((info) => {
-      return `${info.timestamp} [${info.level.toUpperCase()}]: ${info.message}`;
-    }),
-    //   format.colorize({ all: true, colors: winstonConfig.colors }),
-  ),
+  levels: defaultLogConfig.levels,
+  format: logFormat,
   transports: [
     new winston.transports.Console(),
     new winston.transports.File({ filename: 'logs/server.log' }),
@@ -36,5 +31,15 @@ export const logger: any = winston.createLogger({
       level: 'error',
       filename: 'logs/error.log',
     }),
+  ],
+});
+
+export const orderBook: any = winston.createLogger({
+  levels: { order: 1 },
+  level: 'order',
+  format: logFormat,
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: 'logs/orderBook.log' }),
   ],
 });

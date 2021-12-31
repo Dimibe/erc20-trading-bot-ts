@@ -12,17 +12,22 @@ import {
 import * as web3 from '../Web3Service';
 import { Strategy } from './Strategy';
 
-const MAX_TRADES = options.strategies.scalping.maxTrades;
-const BUY_POWER = options.strategies.scalping.buyPower;
-const DROP_BEFORE_BUY = options.strategies.scalping.dropBeforeBuy;
-
 export class Scalping implements Strategy {
+  MAX_TRADES: number;
+  BUY_POWER: number;
+  DROP_BEFORE_BUY: number;
   trades = 0;
   tradeOngoing = false;
-  high: number | undefined;
-  low: number | undefined;
-  buyPrice: number | undefined;
+  high!: number;
+  low!: number;
+  buyPrice?: number;
   currentState = BotState.BUY;
+
+  constructor(strategyOptions: any) {
+    this.MAX_TRADES = strategyOptions.maxTrades;
+    this.BUY_POWER = strategyOptions.buyPower;
+    this.DROP_BEFORE_BUY = strategyOptions.dropBeforeBuy;
+  }
 
   async init(conversion: number): Promise<void> {
     this.high = conversion;
@@ -50,20 +55,20 @@ export class Scalping implements Strategy {
 
     switch (this.currentState) {
       case BotState.BUY:
-        let priceTaget = this.high! - (this.high! / 100) * DROP_BEFORE_BUY;
+        let priceTaget = this.high! - (this.high! / 100) * this.DROP_BEFORE_BUY;
         let priceTargetMatched = conversion < priceTaget;
         logger.info(
           `Current price is ${
             conversion - priceTaget
           }$ away from price taget ${priceTaget}$`,
         );
-        if (priceTargetMatched && this.trades < MAX_TRADES) {
+        if (priceTargetMatched && this.trades < this.MAX_TRADES) {
           this.tradeOngoing = true;
           this.trades++;
           this.buyPrice = conversion;
           logger.info(`Buy price is ${this.buyPrice}$`);
           try {
-            await web3.buy(BUY_POWER);
+            await web3.buy(this.BUY_POWER);
             this.currentState = BotState.SELL;
           } catch (e) {
             if (e instanceof Error) {
@@ -90,13 +95,16 @@ export class Scalping implements Strategy {
         );
         logger.info(
           `Min Out would be ${outMinNumber} which is ${
-            BUY_POWER - outMinNumber
+            this.BUY_POWER - outMinNumber
           } away from buy price`,
         );
-        if (outMinNumber > BUY_POWER && !this.tradeOngoing) {
+        if (outMinNumber > this.BUY_POWER && !this.tradeOngoing) {
           this.tradeOngoing = true;
           try {
-            await web3.sell(amountIn, amountOutMin);
+            await web3.sell(
+              Number(utils.formatUnits(amountIn, options.tradeTokenDigits)),
+              amounts,
+            );
             this.currentState = BotState.BUY;
           } catch (e) {
             if (e instanceof Error) {

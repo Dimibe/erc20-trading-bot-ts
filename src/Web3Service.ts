@@ -15,14 +15,14 @@ import {
 import options from './config/options.json';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { BigNumber, Contract, utils } from 'ethers';
-import { logger } from './logger';
+import { logger, orderBook } from './logger';
 
 export async function swap(
   amountIn: BigNumber,
   amountOutMin: BigNumber,
   pair: string[],
   tokenContract: Contract,
-): Promise<any> {
+): Promise<string> {
   const options = {
     gasPrice: utils.parseUnits(`${GWEI}`, 'gwei'),
     gasLimit: GAS_LIMIT,
@@ -50,12 +50,14 @@ export async function swap(
   logger.transaction(`Swap transaction hash: ${swapTx.hash}`);
   await swapTx.wait();
   logger.transaction('Swap done!');
+
   await info('transaction');
+  return swapTx.hash;
 }
 
-export async function buy(buyPower: number) {
+export async function buy(buyPower: number, conversion?: number): Promise<string> {
   const amountIn: BigNumber = utils.parseUnits(
-    `${buyPower}`,
+    buyPower.toFixed(options.stalbeTokenDigits),
     options.stalbeTokenDigits,
   );
   const amounts: BigNumber[] = await routerContract.getAmountsOut(amountIn, [
@@ -71,35 +73,57 @@ export async function buy(buyPower: number) {
     )} ${options.stalbeTokenName} ...`,
   );
 
-  await swap(
+  let hash: string = await swap(
     amountIn,
     amountOutMin,
     [STABLE_TOKEN, TRADE_TOKEN],
     stableTokenContract,
   );
+
+  orderBook.order(
+    `Swapped ${buyPower} ${options.stalbeTokenName} for ${utils.formatUnits(
+      amounts[1],
+      options.tradeTokenDigits,
+    )} ${options.tradeTokenName} @${conversion}. Hash: ${hash}`,
+  );
+  return hash;
 }
 
-export async function sell(amountIn: BigNumber, amountOutMin?: BigNumber) {
+export async function sell(
+  amount: number,
+  amounts?: BigNumber[],
+  conversion?: number,
+): Promise<string> {
+  let amountIn = utils.parseUnits(
+    amount.toFixed(options.tradeTokenDigits),
+    options.tradeTokenDigits,
+  );
   logger.transaction(
-    `Selling ${utils.formatUnits(amountIn, options.tradeTokenDigits)} ${
-      options.tradeTokenName
-    } for ${options.stalbeTokenName}...`,
+    `Selling ${amount} ${options.tradeTokenName} for ${options.stalbeTokenName}...`,
   );
 
-  if (amountOutMin === undefined) {
-    const amounts: BigNumber[] = await routerContract.getAmountsOut(amountIn, [
+  if (amounts === undefined) {
+    amounts = await routerContract.getAmountsOut(amountIn, [
       TRADE_TOKEN,
       STABLE_TOKEN,
     ]);
-    amountOutMin = amounts[1].sub(amounts[1].div(100 / SLIPPAGE));
   }
+  const amountOutMin = amounts![1].sub(amounts![1].div(100 / SLIPPAGE));
 
-  await swap(
+  let hash: string = await swap(
     amountIn,
     amountOutMin,
     [TRADE_TOKEN, STABLE_TOKEN],
     tradeTokenContract,
   );
+
+  orderBook.order(
+    `Swapped ${amount} ${options.tradeTokenName} for ${utils.formatUnits(
+      amounts![1],
+      options.stalbeTokenDigits,
+    )} ${options.stalbeTokenName} @${conversion}. Hash: ${hash}`,
+  );
+  return hash;
 }
 
 export async function getCurrentPrice(): Promise<number> {
@@ -113,31 +137,31 @@ export async function getCurrentPrice(): Promise<number> {
     options.tradeTokenDigits,
   );
   const conversion = Number(stableTokenReserve) / Number(tradeTokenReserve);
-  return conversion;
+  return Number(conversion.toFixed(options.stalbeTokenDigits));
 }
 
-export async function info(logLevel: string = 'info') {
-  const coinBalance = await provider.getBalance(wallet.address);
-  const stableTokenBalance = await stableTokenContract.balanceOf(
-    wallet.address,
-  );
-  const tradeTokenBalance = await tradeTokenContract.balanceOf(wallet.address);
+export async function getCoinBalance(): Promise<number> {
+  let balance = await provider.getBalance(wallet.address);
+  return Number(utils.formatUnits(balance, options.coinDigits));
+}
+
+export async function getStableTokenBalance(): Promise<number> {
+  let balance = await stableTokenContract.balanceOf(wallet.address);
+  return Number(utils.formatUnits(balance, options.stalbeTokenDigits));
+}
+
+export async function getTradeTokenBalance(): Promise<number> {
+  let balance = await tradeTokenContract.balanceOf(wallet.address);
+  return Number(utils.formatUnits(balance, options.tradeTokenDigits));
+}
+
+export async function info(logLevel: string = 'info'): Promise<void> {
+  const coinBalance = await getCoinBalance();
+  const stableTokenBalance = await getStableTokenBalance();
+  const tradeTokenBalance = await getTradeTokenBalance();
 
   logger.log(logLevel, `Balance Information:`);
-  logger.log(
-    logLevel,
-    `${utils.formatUnits(coinBalance, options.coinDigits)} ${options.coinName}`,
-  );
-  logger.log(
-    logLevel,
-    `${utils.formatUnits(stableTokenBalance, options.stalbeTokenDigits)} ${
-      options.stalbeTokenName
-    }`,
-  );
-  logger.log(
-    logLevel,
-    `${utils.formatUnits(tradeTokenBalance, options.tradeTokenDigits)} ${
-      options.tradeTokenName
-    }`,
-  );
+  logger.log(logLevel, `${coinBalance} ${options.coinName}`);
+  logger.log(logLevel, `${stableTokenBalance} ${options.stalbeTokenName}`);
+  logger.log(logLevel, `${tradeTokenBalance} ${options.tradeTokenName}`);
 }

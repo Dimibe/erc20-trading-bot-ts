@@ -32,7 +32,15 @@ async function run() {
 
   if (priceChange !== 0) {
     logger.info(`Price: ${conversion}$ / Change: ${priceChange}$`);
-    await strategy.priceUpdate(conversion, priceChange);
+    try {
+      await strategy.priceUpdate(conversion, priceChange);
+    } catch(e) {
+      if (e instanceof Error) {
+        logger.error(e.message);
+      } else {
+        logger.error(e);
+      }
+    }
   }
 
   lastPrice = conversion;
@@ -42,9 +50,9 @@ async function run() {
 function getStrategy(): Strategy {
   switch (options.strategy) {
     case 'scalping':
-      return new Scalping();
+      return new Scalping(options.strategies.scalping);
     case 'gridTrading':
-      return new GridTrading();
+      return new GridTrading(options.strategies.gridTrading);
     default:
       throw Error(`No strategy ${options.strategy} available`);
   }

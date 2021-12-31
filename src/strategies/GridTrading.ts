@@ -1,59 +1,79 @@
-import { utils } from 'ethers';
 import { logger } from '../logger';
 import options from '../config/options.json';
 import * as web3 from '../Web3Service';
 import { Strategy } from './Strategy';
 
 export class GridTrading implements Strategy {
-  min: number = options.strategies.gridTrading.range.min;
-  max: number = options.strategies.gridTrading.range.max;
-  gridMargin: number = options.strategies.gridTrading.gridMargin;
-  totalBuyPower: number = options.strategies.gridTrading.totalBuyPower;
-  buyPowerPerGrid!: number;
-  gridCount!: number;
-  gridSize!: number;
-  lastGrid!: number;
+  rebalance: boolean;
+  min: number;
+  max: number;
+  gridMargin: number;
+  totalBuyPower: number;
+  buyPowerPerGrid: number;
+  gridCount: number;
+  gridSize: number;
+  nextSell!: number;
+  nextBuy!: number;
 
-  async init(conversion: number): Promise<void> {
+  constructor(strategyOptions: any) {
+    this.rebalance = strategyOptions.rebalance;
+    this.min = strategyOptions.range.min;
+    this.max = strategyOptions.range.max;
+    this.gridMargin = strategyOptions.gridMargin;
+    this.totalBuyPower = strategyOptions.totalBuyPower;
     let range = this.max - this.min;
     let middle = range / 2 + this.min;
     this.gridSize = middle * (this.gridMargin / 100);
     this.gridCount = Math.ceil(range / this.gridSize);
     this.gridSize = range / this.gridCount;
     this.buyPowerPerGrid = this.totalBuyPower / this.gridCount;
+  }
 
-    logger.info(
-      `Grid init with ${this.gridCount} grids of size ${this.gridSize}`,
-    );
+  async init(conversion: number): Promise<void> {
+    logger.info(`Init with ${this.gridCount} grids of size ${this.gridSize}`);
 
-    let stableValue = (conversion - this.min) / range;
-    let amountIn = (1 - stableValue) * this.totalBuyPower;
-    logger.info(`Buying ${options.tradeTokenName} for ${amountIn.toFixed(6)}$`);
-    await web3.buy(Number(amountIn.toFixed(6)));
+    let currentGrid = this.calculateGrid(conversion);
+    let buyPower = (this.gridCount - currentGrid) * this.buyPowerPerGrid;
 
-    this.lastGrid = this.calculateGrid(conversion);
+    if (this.rebalance) {
+      let currentValue = (await web3.getTradeTokenBalance()) * conversion;
+      buyPower = Math.max(buyPower - currentValue, 0);
+    }
+    if (buyPower > 0) {
+      await web3.buy(buyPower, conversion);
+    }
+    this.nextSell = currentGrid + 2;
+    this.nextBuy = currentGrid - 1;
   }
 
   async priceUpdate(conversion: number): Promise<void> {
     let currentGrid = this.calculateGrid(conversion);
+    let sellPrice = this.min + this.gridSize * this.nextSell;
+    let buyPrice = this.min + this.gridSize * this.nextBuy;
     logger.info(
-      `Grid ${currentGrid}: ${this.min + this.gridSize * currentGrid} - ${
-        this.min + this.gridSize * (currentGrid + 1)
-      }`,
+      `Grid ${currentGrid} : Buy: ${this.nextBuy} (${buyPrice}$) Sell: ${this.nextSell} (${sellPrice}$)`,
     );
 
-    let change = currentGrid - this.lastGrid;
-
-    if (change > 0) {
-      let amount = this.buyPowerPerGrid / conversion;
-      let amountIn = utils.parseUnits(`${amount}`, options.tradeTokenDigits);
-      await web3.sell(amountIn);
-    } else if (change < 0) {
-      let buyPower = -change * this.buyPowerPerGrid;
-      await web3.buy(Number(buyPower.toFixed(6)));
+    if (currentGrid >= this.nextSell) {
+      await this.executeSell(currentGrid, conversion);
+    } else if (currentGrid <= this.nextBuy) {
+      await this.executeBuy(currentGrid, conversion);
     }
+  }
 
-    this.lastGrid = currentGrid;
+  async executeSell(currentGrid: number, conversion: number): Promise<void> {
+    let amount =
+      (currentGrid - this.nextSell + 1) * (this.buyPowerPerGrid / conversion);
+    await web3.sell(amount, undefined, conversion);
+    this.nextSell = currentGrid + 1;
+    this.nextBuy = currentGrid - 2;
+  }
+
+  async executeBuy(currentGrid: number, conversion: number): Promise<void> {
+    let buyPower = (this.nextBuy - currentGrid + 1) * this.buyPowerPerGrid;
+    await web3.buy(buyPower, conversion);
+    this.nextSell = currentGrid + 2;
+    this.nextBuy = currentGrid - 1;
   }
 
   calculateGrid(conversion: number): number {
