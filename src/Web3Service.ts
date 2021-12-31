@@ -91,7 +91,6 @@ export async function buy(buyPower: number, conversion?: number): Promise<string
 
 export async function sell(
   amount: number,
-  amounts?: BigNumber[],
   conversion?: number,
 ): Promise<string> {
   let amountIn = utils.parseUnits(
@@ -102,12 +101,10 @@ export async function sell(
     `Selling ${amount} ${options.tradeTokenName} for ${options.stalbeTokenName}...`,
   );
 
-  if (amounts === undefined) {
-    amounts = await routerContract.getAmountsOut(amountIn, [
-      TRADE_TOKEN,
-      STABLE_TOKEN,
-    ]);
-  }
+  const amounts = await routerContract.getAmountsOut(amountIn, [
+    TRADE_TOKEN,
+    STABLE_TOKEN,
+  ]);
   const amountOutMin = amounts![1].sub(amounts![1].div(100 / SLIPPAGE));
 
   let hash: string = await swap(
@@ -153,6 +150,15 @@ export async function getStableTokenBalance(): Promise<number> {
 export async function getTradeTokenBalance(): Promise<number> {
   let balance = await tradeTokenContract.balanceOf(wallet.address);
   return Number(utils.formatUnits(balance, options.tradeTokenDigits));
+}
+
+export async function getTradeTokenDecimals(): Promise<number> {
+  let decimals = await tradeTokenContract.decimals();
+  return decimals;
+}
+export async function getTradeTokenSymbol(): Promise<string> {
+  let symbol = await tradeTokenContract.symbol();
+  return symbol;
 }
 
 export async function info(logLevel: string = 'info'): Promise<void> {

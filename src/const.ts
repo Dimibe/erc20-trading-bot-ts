@@ -39,6 +39,8 @@ export const stableTokenContract = new Contract(
   [
     'function approve(address spender, uint256 amount) external returns (bool)',
     'function balanceOf(address) view returns (uint)',
+    'function decimals() external view returns (uint8)',
+    'function symbol() external view returns (string memory)',
   ],
   signer,
 );
@@ -48,6 +50,8 @@ export const tradeTokenContract = new Contract(
   [
     'function approve(address spender, uint256 amount) external returns (bool)',
     'function balanceOf(address) view returns (uint)',
+    'function decimals() external view returns (uint8)',
+    'function symbol() external view returns (string memory)',
   ],
   signer,
 );

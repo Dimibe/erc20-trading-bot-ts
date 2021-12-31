@@ -68,7 +68,7 @@ export class Scalping implements Strategy {
           this.buyPrice = conversion;
           logger.info(`Buy price is ${this.buyPrice}$`);
           try {
-            await web3.buy(this.BUY_POWER);
+            await web3.buy(this.BUY_POWER, conversion);
             this.currentState = BotState.SELL;
           } catch (e) {
             if (e instanceof Error) {
@@ -103,7 +103,7 @@ export class Scalping implements Strategy {
           try {
             await web3.sell(
               Number(utils.formatUnits(amountIn, options.tradeTokenDigits)),
-              amounts,
+              conversion,
             );
             this.currentState = BotState.BUY;
           } catch (e) {

@@ -37,13 +37,13 @@ export class GridTrading implements Strategy {
 
     if (this.rebalance) {
       let currentValue = (await web3.getTradeTokenBalance()) * conversion;
-      buyPower = Math.max(buyPower - currentValue, 0);
+      buyPower = buyPower - currentValue;
     }
     if (buyPower > 0) {
-      await web3.buy(buyPower, conversion);
+      await this.executeBuy(buyPower, currentGrid, conversion);
+    } else {
+      await this.executeSell(-buyPower / conversion, currentGrid, conversion);
     }
-    this.nextSell = currentGrid + 2;
-    this.nextBuy = currentGrid - 1;
   }
 
   async priceUpdate(conversion: number): Promise<void> {
@@ -55,23 +55,31 @@ export class GridTrading implements Strategy {
     );
 
     if (currentGrid >= this.nextSell) {
-      await this.executeSell(currentGrid, conversion);
+      let amount =
+        (currentGrid - this.nextSell + 1) * (this.buyPowerPerGrid / conversion);
+      await this.executeSell(amount, currentGrid, conversion);
     } else if (currentGrid <= this.nextBuy) {
-      await this.executeBuy(currentGrid, conversion);
+      let amount = (this.nextBuy - currentGrid + 1) * this.buyPowerPerGrid;
+      await this.executeBuy(amount, currentGrid, conversion);
     }
   }
 
-  async executeSell(currentGrid: number, conversion: number): Promise<void> {
-    let amount =
-      (currentGrid - this.nextSell + 1) * (this.buyPowerPerGrid / conversion);
-    await web3.sell(amount, undefined, conversion);
+  async executeSell(
+    amount: number,
+    currentGrid: number,
+    conversion: number,
+  ): Promise<void> {
+    await web3.sell(amount, conversion);
     this.nextSell = currentGrid + 1;
     this.nextBuy = currentGrid - 2;
   }
 
-  async executeBuy(currentGrid: number, conversion: number): Promise<void> {
-    let buyPower = (this.nextBuy - currentGrid + 1) * this.buyPowerPerGrid;
-    await web3.buy(buyPower, conversion);
+  async executeBuy(
+    amount: number,
+    currentGrid: number,
+    conversion: number,
+  ): Promise<void> {
+    await web3.buy(amount, conversion);
     this.nextSell = currentGrid + 2;
     this.nextBuy = currentGrid - 1;
   }
