@@ -4,8 +4,10 @@ import secrets from './config/secrets.json';
 import options from './config/options.json';
 
 export const SLIPPAGE = options.slippage;
-export const GWEI = options.gwei;
+export const MAX_GWEI = options.maxGwei;
 export const GAS_LIMIT = options.gasLimit;
+
+export const simulationMode: boolean = options.simulationMode ?? false;
 
 export const STABLE_TOKEN = options.stalbeToken;
 export const TRADE_TOKEN = options.tradeToken;

@@ -1,6 +1,6 @@
 import {
   GAS_LIMIT,
-  GWEI,
+  MAX_GWEI,
   pairContract,
   provider,
   router,
@@ -11,9 +11,13 @@ import {
   tradeTokenContract,
   TRADE_TOKEN,
   wallet,
+  simulationMode,
 } from './const';
 import options from './config/options.json';
-import { TransactionResponse } from '@ethersproject/abstract-provider';
+import {
+  TransactionReceipt,
+  TransactionResponse,
+} from '@ethersproject/abstract-provider';
 import { BigNumber, Contract, utils } from 'ethers';
 import { logger, orderBook } from './logger';
 import axios from 'axios';
@@ -23,14 +27,12 @@ class Web3Service {
   static tradeTokenSymbol: string;
   static stableTokenDecimals: number;
   static stableTokenSymbol: string;
-  static gasPrice: number;
 
   static async init() {
     this.tradeTokenDecimals = await this.getTradeTokenDecimals();
     this.tradeTokenSymbol = await this.getTradeTokenSymbol();
     this.stableTokenDecimals = await this.getStableTokenDecimals();
     this.stableTokenSymbol = await this.getStableTokenSymbol();
-    this.gasPrice = await this.getGasPrice();
   }
 
   static async swap(
@@ -38,9 +40,11 @@ class Web3Service {
     amountOutMin: BigNumber,
     pair: string[],
     tokenContract: Contract,
-  ): Promise<string> {
+  ): Promise<TransactionReceipt> {
+    let currentGas = await this.getGasPrice();
+    let gas = Math.min(MAX_GWEI, currentGas);
     const options = {
-      gasPrice: utils.parseUnits(`${GWEI}`, 'gwei'),
+      gasPrice: utils.parseUnits(`${gas}`, 'gwei'),
       gasLimit: GAS_LIMIT,
     };
 
@@ -65,11 +69,11 @@ class Web3Service {
         options,
       );
     logger.transaction(`Swap transaction hash: ${swapTx.hash}`);
-    await swapTx.wait();
+    let tx = await swapTx.wait();
     logger.transaction('Swap done!');
 
     await this.info('transaction');
-    return swapTx.hash;
+    return tx;
   }
 
   static async buy(buyPower: number, conversion?: number): Promise<string> {
@@ -90,7 +94,7 @@ class Web3Service {
       )} ${this.stableTokenSymbol} ...`,
     );
 
-    let hash: string = await this.swap(
+    let tx = await this.swap(
       amountIn,
       amountOutMin,
       [STABLE_TOKEN, TRADE_TOKEN],
@@ -98,12 +102,13 @@ class Web3Service {
     );
 
     orderBook.order(
-      `Swapped ${buyPower} ${this.stableTokenSymbol} for ${utils.formatUnits(
-        amounts[1],
-        this.tradeTokenDecimals,
-      )} ${this.tradeTokenSymbol} @${conversion}. Hash: ${hash}`,
+      `Swapped ${this.getStableTokenAmountFromSwap(tx)} ${
+        this.stableTokenSymbol
+      } for ${this.getTradeTokenAmountFromSwap(tx)} ${
+        this.tradeTokenSymbol
+      } @${conversion}. Hash: ${tx.transactionHash}`,
     );
-    return hash;
+    return tx.transactionHash;
   }
 
   static async sell(amount: number, conversion?: number): Promise<string> {
@@ -121,7 +126,7 @@ class Web3Service {
     ]);
     const amountOutMin = amounts![1].sub(amounts![1].div(100 / SLIPPAGE));
 
-    let hash: string = await this.swap(
+    let tx = await this.swap(
       amountIn,
       amountOutMin,
       [TRADE_TOKEN, STABLE_TOKEN],
@@ -129,12 +134,13 @@ class Web3Service {
     );
 
     orderBook.order(
-      `Swapped ${amount} ${this.tradeTokenSymbol} for ${utils.formatUnits(
-        amounts![1],
-        this.stableTokenDecimals,
-      )} ${this.stableTokenSymbol} @${conversion}. Hash: ${hash}`,
+      `Swapped ${this.getTradeTokenAmountFromSwap(tx)} ${
+        this.tradeTokenSymbol
+      } for ${this.getStableTokenAmountFromSwap(tx)} ${
+        this.stableTokenSymbol
+      } @${conversion}. Hash: ${tx.transactionHash}`,
     );
-    return hash;
+    return tx.transactionHash;
   }
 
   static async getCurrentPrice(): Promise<number> {
@@ -196,6 +202,31 @@ class Web3Service {
       'https://gpoly.blockscan.com/gasapi.ashx?apikey=key&method=gasoracle',
     );
     return res.data.result.ProposeGasPrice;
+  }
+
+  static getStableTokenAmountFromSwap(transaction: TransactionReceipt): number {
+    return this.getTokenAmountFromSwap(
+      transaction,
+      STABLE_TOKEN,
+      this.stableTokenDecimals,
+    );
+  }
+  static getTradeTokenAmountFromSwap(transaction: TransactionReceipt): number {
+    return this.getTokenAmountFromSwap(
+      transaction,
+      TRADE_TOKEN,
+      this.tradeTokenDecimals,
+    );
+  }
+
+  static getTokenAmountFromSwap(
+    transaction: TransactionReceipt,
+    token: string,
+    decimals: number,
+  ): number {
+    let stableValue = transaction.logs.find((log) => log.address === token);
+    let bn = BigNumber.from(stableValue!.data);
+    return Number(utils.formatUnits(bn, decimals));
   }
 
   static async info(logLevel: string = 'info'): Promise<void> {

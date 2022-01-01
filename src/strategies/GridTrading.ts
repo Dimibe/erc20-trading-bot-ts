@@ -86,9 +86,11 @@ export class GridTrading implements Strategy {
   calculateGrid(conversion: number): number {
     let grid = Math.floor((conversion - this.min) / this.gridSize);
     if (grid < 0) {
+      logger.warn('Price is below the first grid');
       return 0;
     }
     if (grid > this.gridCount) {
+      logger.warn('Price is above the last grid');
       return this.gridCount;
     }
     return grid;

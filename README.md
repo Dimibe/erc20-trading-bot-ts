@@ -20,17 +20,14 @@ Following options are available:
  |Name|Function|Default|
  |----|----|----|
  |strategy|The strategy which the bot should use|Grid Trading|
+ |simulationMode|If true no swapps will be actually made|false|
  |slippage|Change from price in % to buy token|0.5%|
- |gwei|change from price in % to buy token|30 gwei|
- |gasLimit|change from price in % to buy token|200000|
+ |maxGwei|The max gwei for a transaction|30 gwei|
+ |gasLimit|Gas limit|200000|
  |coinName|Name of the network coin|Matic|
  |coinDigits|Digits of the network coin|18|
  |stableToken|Address of the stable token|USD Coin address|
- |stableTokenName|Name of the stable token|USDC|
- |stableTokenDigits|Digits of the stable token|6|
  |tradeToken|Address of the traded token|Wrapped Matic address|
- |tradeTokenName|Name of the traded token|WMATIC|
- |tradeTokenDigits|Digits of the traded token|18|
  |pairAddress|Address of the stable/traded token pair|USDC/WMATIC pair address|
  |routerAddress|Address of the router/DEX|Quickswap address|
  |strategies|Options for the different strategies|-|
@@ -45,6 +42,7 @@ Following options are available:
  |range|min and max price in which the bot trades|2.35 - 2.65|
  |totalBuyPower|Total amount to invest|10|
  |gridMargin|Size of grids in percent|0.5%|
+ |rebalance|If true the initial tradeToken balance will be taken into account. Otherwise the total buy power needs to be in stable token|true|
 
 ##### How it works
 

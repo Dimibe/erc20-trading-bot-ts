@@ -1,10 +1,12 @@
 import { logger } from './logger';
 import { web3 } from './Web3Service';
+
 import { Strategy } from './strategies/Strategy';
 import { Scalping } from './strategies/Scalping';
 import { GridTrading } from './strategies/GridTrading';
 import options from './config/options.json';
-import { utils } from 'ethers';
+import { provider, simulationMode, STABLE_TOKEN, TRADE_TOKEN } from './const';
+import { BigNumber, utils } from 'ethers';
 
 const strategy: Strategy = getStrategy();
 
@@ -13,11 +15,12 @@ let lastPrice: number;
 
 main();
 
-async function main() {
+async function main(): Promise<void> {
   logger.info('Bot started!');
   // init
   await web3.init();
 
+  checkMode();
   checkGwei();
 
   conversion = await web3.getCurrentPrice();
@@ -30,7 +33,7 @@ async function main() {
   run();
 }
 
-async function run() {
+async function run(): Promise<void> {
   const conversion = await web3.getCurrentPrice();
   const priceChange = conversion - lastPrice;
 
@@ -62,11 +65,18 @@ function getStrategy(): Strategy {
   }
 }
 
-function checkGwei() {
-  let configuredGwei = options.gwei;
-  if (configuredGwei < web3.gasPrice) {
-    logger.warn(`Configured gwei (${configuredGwei}) is below estimated gwei (${web3.gasPrice})`);
+async function checkGwei(): Promise<void> {
+  let configuredGwei = options.maxGwei;
+  let gasPrice = await web3.getGasPrice();
+  if (configuredGwei < gasPrice) {
+    logger.warn(
+      `Configured max gwei (${configuredGwei}) is below estimated gwei (${gasPrice})`,
+    );
   }
 }
 
-
+function checkMode(): void {
+  if (simulationMode) {
+    logger.warn(`Bot is running in simulation mode. No swapps will be made!`);
+  }
+}
