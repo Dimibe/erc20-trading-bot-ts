@@ -29,7 +29,9 @@ export class GridTrading implements Strategy {
   }
 
   async init(conversion: number): Promise<void> {
-    logger.info(`Init with ${this.gridCount} grids of size ${this.gridSize}`);
+    logger.info(
+      `Grids: ${this.gridCount} Size: ${this.gridSize} Buy power per grid: ${this.buyPowerPerGrid}`,
+    );
 
     let currentGrid = this.calculateGrid(conversion);
     let buyPower = (this.gridCount - currentGrid) * this.buyPowerPerGrid;
@@ -48,7 +50,7 @@ export class GridTrading implements Strategy {
   async priceUpdate(conversion: number): Promise<void> {
     let currentGrid = this.calculateGrid(conversion);
     let sellPrice = this.min + this.gridSize * this.nextSell;
-    let buyPrice = this.min + this.gridSize * this.nextBuy;
+    let buyPrice = this.min + this.gridSize * (this.nextBuy + 1);
     logger.info(
       `Grid ${currentGrid} : Buy: ${this.nextBuy} (${buyPrice}$) Sell: ${this.nextSell} (${sellPrice}$)`,
     );
