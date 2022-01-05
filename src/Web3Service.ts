@@ -11,16 +11,13 @@ import {
   tradeTokenContract,
   TRADE_TOKEN,
   wallet,
-  simulationMode,
 } from './const';
 import options from './config/options.json';
-import {
-  TransactionReceipt,
-  TransactionResponse,
-} from '@ethersproject/abstract-provider';
+import { TransactionReceipt, TransactionResponse } from '@ethersproject/abstract-provider';
 import { BigNumber, Contract, utils } from 'ethers';
-import { logger, orderBook } from './logger';
+import { logger } from './logger';
 import axios from 'axios';
+import { Order } from './Order';
 
 class Web3Service {
   static tradeTokenDecimals: number;
@@ -35,7 +32,7 @@ class Web3Service {
     this.stableTokenSymbol = await this.getStableTokenSymbol();
   }
 
-  static async swap(
+  private static async executeSwap(
     amountIn: BigNumber,
     amountOutMin: BigNumber,
     pair: string[],
@@ -50,24 +47,19 @@ class Web3Service {
 
     logger.transaction('Swapping...');
 
-    const approveTx: TransactionResponse = await tokenContract.approve(
-      router,
-      amountIn,
-      options,
-    );
+    const approveTx: TransactionResponse = await tokenContract.approve(router, amountIn, options);
     logger.transaction(`Approve transaction hash: ${approveTx.hash}`);
     await approveTx.wait();
     logger.transaction(`Swap approved.`);
 
-    const swapTx: TransactionResponse =
-      await routerContract.swapExactTokensForTokens(
-        amountIn,
-        amountOutMin,
-        pair,
-        wallet.address,
-        Date.now() + 1000 * 60 * 10,
-        options,
-      );
+    const swapTx: TransactionResponse = await routerContract.swapExactTokensForTokens(
+      amountIn,
+      amountOutMin,
+      pair,
+      wallet.address,
+      Date.now() + 1000 * 60 * 10,
+      options,
+    );
     logger.transaction(`Swap transaction hash: ${swapTx.hash}`);
     let tx = await swapTx.wait();
     logger.transaction('Swap done!');
@@ -76,83 +68,41 @@ class Web3Service {
     return tx;
   }
 
-  static async buy(buyPower: number, conversion?: number): Promise<string> {
-    const amountIn: BigNumber = utils.parseUnits(
-      buyPower.toFixed(this.stableTokenDecimals),
-      this.stableTokenDecimals,
-    );
-    const amounts: BigNumber[] = await routerContract.getAmountsOut(amountIn, [
-      STABLE_TOKEN,
-      TRADE_TOKEN,
-    ]);
+  static async swap(order: Order): Promise<TransactionReceipt> {
+    const decimals = this.getDecimals(order.tokenIn);
+    const contract = this.getContract(order.tokenIn);
+
+    const amountIn: BigNumber = utils.parseUnits(order.amountIn.toFixed(decimals), decimals);
+    const amounts: BigNumber[] = await routerContract.getAmountsOut(amountIn, [order.tokenIn, order.tokenOut]);
     const amountOutMin = amounts[1].sub(amounts[1].div(100 / SLIPPAGE));
 
     logger.transaction(
-      `Buying ${this.tradeTokenSymbol} for ${utils.formatUnits(
-        amountIn,
-        this.stableTokenDecimals,
-      )} ${this.stableTokenSymbol} ...`,
+      `Swapping  ${utils.formatUnits(amountIn, decimals)} ${this.getSymbol(order.tokenIn)} for ${this.getSymbol(
+        order.tokenOut,
+      )}...`,
     );
 
-    let tx = await this.swap(
-      amountIn,
-      amountOutMin,
-      [STABLE_TOKEN, TRADE_TOKEN],
-      stableTokenContract,
-    );
+    let txn = await this.executeSwap(amountIn, amountOutMin, [order.tokenIn, order.tokenOut], contract);
 
-    orderBook.order(
-      `Swapped ${this.getStableTokenAmountFromSwap(tx)} ${
-        this.stableTokenSymbol
-      } for ${this.getTradeTokenAmountFromSwap(tx)} ${
-        this.tradeTokenSymbol
-      } @${conversion}. Hash: ${tx.transactionHash}`,
-    );
-    return tx.transactionHash;
+    return txn;
   }
 
-  static async sell(amount: number, conversion?: number): Promise<string> {
-    let amountIn = utils.parseUnits(
-      amount.toFixed(this.tradeTokenDecimals),
-      this.tradeTokenDecimals,
-    );
-    logger.transaction(
-      `Selling ${amount} ${this.tradeTokenSymbol} for ${this.stableTokenSymbol}...`,
-    );
+  static getDecimals(token: string): number {
+    return token == STABLE_TOKEN ? this.stableTokenDecimals : this.tradeTokenDecimals;
+  }
 
-    const amounts = await routerContract.getAmountsOut(amountIn, [
-      TRADE_TOKEN,
-      STABLE_TOKEN,
-    ]);
-    const amountOutMin = amounts![1].sub(amounts![1].div(100 / SLIPPAGE));
+  static getSymbol(token: string): string {
+    return token == STABLE_TOKEN ? this.stableTokenSymbol : this.tradeTokenSymbol;
+  }
 
-    let tx = await this.swap(
-      amountIn,
-      amountOutMin,
-      [TRADE_TOKEN, STABLE_TOKEN],
-      tradeTokenContract,
-    );
-
-    orderBook.order(
-      `Swapped ${this.getTradeTokenAmountFromSwap(tx)} ${
-        this.tradeTokenSymbol
-      } for ${this.getStableTokenAmountFromSwap(tx)} ${
-        this.stableTokenSymbol
-      } @${conversion}. Hash: ${tx.transactionHash}`,
-    );
-    return tx.transactionHash;
+  static getContract(token: string): Contract {
+    return token == STABLE_TOKEN ? stableTokenContract : tradeTokenContract;
   }
 
   static async getCurrentPrice(): Promise<number> {
     const pairData = await pairContract.getReserves();
-    const stableTokenReserve = utils.formatUnits(
-      pairData[1],
-      this.stableTokenDecimals,
-    );
-    const tradeTokenReserve = utils.formatUnits(
-      pairData[0],
-      this.tradeTokenDecimals,
-    );
+    const stableTokenReserve = utils.formatUnits(pairData[1], this.stableTokenDecimals);
+    const tradeTokenReserve = utils.formatUnits(pairData[0], this.tradeTokenDecimals);
     const conversion = Number(stableTokenReserve) / Number(tradeTokenReserve);
     return Number(conversion.toFixed(this.stableTokenDecimals));
   }
@@ -198,35 +148,24 @@ class Web3Service {
   }
 
   static async getEstimatedGwei() {
-    let res = await axios.get(
-      'https://gpoly.blockscan.com/gasapi.ashx?apikey=key&method=gasoracle',
-    );
+    let res = await axios.get('https://gpoly.blockscan.com/gasapi.ashx?apikey=key&method=gasoracle');
     return res.data.result.ProposeGasPrice;
   }
 
-  static getStableTokenAmountFromSwap(transaction: TransactionReceipt): number {
-    return this.getTokenAmountFromSwap(
-      transaction,
-      STABLE_TOKEN,
-      this.stableTokenDecimals,
-    );
+  static getStableTokenAmountFromSwap(transaction: TransactionReceipt): number | undefined {
+    return this.getTokenAmountFromSwap(transaction, STABLE_TOKEN, this.stableTokenDecimals);
   }
-  static getTradeTokenAmountFromSwap(transaction: TransactionReceipt): number {
-    return this.getTokenAmountFromSwap(
-      transaction,
-      TRADE_TOKEN,
-      this.tradeTokenDecimals,
-    );
+  static getTradeTokenAmountFromSwap(transaction: TransactionReceipt): number | undefined {
+    return this.getTokenAmountFromSwap(transaction, TRADE_TOKEN, this.tradeTokenDecimals);
   }
 
-  static getTokenAmountFromSwap(
-    transaction: TransactionReceipt,
-    token: string,
-    decimals: number,
-  ): number {
-    let stableValue = transaction.logs.find((log) => log.address === token);
-    let bn = BigNumber.from(stableValue!.data);
-    return Number(utils.formatUnits(bn, decimals));
+  static getTokenAmountFromSwap(transaction: TransactionReceipt, token: string, decimals: number): number | undefined {
+    let stableValue = transaction?.logs?.find((log) => log.address === token);
+    if (stableValue !== undefined) {
+      let bn = BigNumber.from(stableValue!.data);
+      return Number(utils.formatUnits(bn, decimals));
+    }
+    return undefined;
   }
 
   static async info(logLevel: string = 'info'): Promise<void> {

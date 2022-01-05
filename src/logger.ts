@@ -26,10 +26,7 @@ const logFormat = format.combine(
   }),
 );
 
-const consoleFormat = format.combine(
-  logFormat,
-  format.colorize({ all: true, colors: defaultLogConfig.colors }),
-);
+const consoleFormat = format.combine(logFormat, format.colorize({ all: true, colors: defaultLogConfig.colors }));
 
 export const logger: any = winston.createLogger({
   levels: defaultLogConfig.levels,

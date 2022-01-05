@@ -1,8 +1,8 @@
 {
-  "strategy": "gridTrading",
+  "strategy": "gridTradingPro",
   "simulationMode": false,
-  "slippage": 0.5,
-  "maxGwei": 83,
+  "slippage": 0.1,
+  "maxGwei": 80,
   "gasLimit": 250000,
   "coinName": "MATIC",
   "coinDigits": 18,
@@ -10,11 +10,12 @@
   "tradeToken": "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
   "pairAddress": "0x6e7a5FAFcec6BB1e78bAE2A1F0B612012BF14827",
   "routerAddress": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
+  "refreshTime": 1000,
   "strategies": {
     "gridTrading": {
       "range": {
-        "min": 2.43,
-        "max": 2.75
+        "min": 2.33,
+        "max": 2.65
       },
       "totalBuyPower": 100,
       "gridMargin": 0.5,
