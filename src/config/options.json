@@ -15,15 +15,15 @@
     "gridTrading": {
       "range": {
         "min": 2.33,
-        "max": 2.65
+        "max": 2.63
       },
       "totalBuyPower": 100,
       "gridMargin": 0.5,
       "rebalance": true
     },
     "scalping": {
-      "maxTrades": 5,
-      "buyPower": 1,
+      "maxTrades": 50,
+      "buyPower": 10,
       "dropBeforeBuy": 0.01
     }
   }

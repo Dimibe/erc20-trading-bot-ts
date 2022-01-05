@@ -40,8 +40,8 @@ Following options are available:
 ##### Options
  |Name|Function|Default|
  |----|----|----|
- |range|min and max price in which the bot trades|2.35 - 2.65|
- |totalBuyPower|Total amount to invest|10|
+ |range|min and max price in which the bot trades|2.33 - 2.63|
+ |totalBuyPower|Total amount to invest|100$|
  |gridMargin|Size of grids in percent|0.5%|
  |rebalance|If true the initial tradeToken balance will be taken into account. Otherwise the total buy power needs to be in stable token|true|
 
@@ -57,8 +57,8 @@ Following options are available:
 ##### Options
  |Name|Function|Default|
  |----|----|----|
- |maxTrades|maximum number of trades the bot executes|5 trades|
- |buyPower|Buy power in $ per trade|1$|
+ |maxTrades|maximum number of trades the bot executes|50 trades|
+ |buyPower|Buy power in $ per trade|10$|
  |dropBeforeBuy|Price drop required before buy|0.1%|
 
 ##### How it works
