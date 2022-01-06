@@ -1,6 +1,6 @@
 {
   "strategy": "gridTrading",
-  "simulationMode": false,
+  "simulationMode": true,
   "slippage": 0.1,
   "maxGwei": 80,
   "gasLimit": 250000,
@@ -15,10 +15,10 @@
   "strategies": {
     "gridTrading": {
       "range": {
-        "min": 2.33,
-        "max": 2.63
+        "min": 2.05,
+        "max": 2.65
       },
-      "totalBuyPower": 100,
+      "totalBuyPower": 1000,
       "gridMargin": 0.5,
       "rebalance": true
     },

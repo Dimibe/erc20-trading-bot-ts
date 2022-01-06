@@ -41,10 +41,10 @@ Following options are available:
 ##### Options
  |Name|Function|Default|
  |----|----|----|
- |range|min and max price in which the bot trades|2.33 - 2.63|
- |totalBuyPower|Total amount to invest|100$|
+ |range|min and max price in which the bot trades|2.05 - 2.65|
+ |totalBuyPower|Total amount to invest|1000$|
  |gridMargin|Size of grids in percent|0.5%|
- |rebalance|If true the initial tradeToken balance will be taken into account. Otherwise the total buy power needs to be in stable token|true|
+ |rebalance|_Currently not implemented_|true|
 
 ##### How it works
 
@@ -117,7 +117,7 @@ A complete example:
 
 ```ts
 let sellOrder = new Order(OrderType.SELL, tradeTokenBalance);
-await orderBook.executeOrder(sellOrder).then((order: Order) => {
+orderBook.executeOrder(sellOrder).then((order: Order) => {
     console.log(`Order executed, got ${order.amountOut} out`);
 });
 ```
