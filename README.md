@@ -91,19 +91,19 @@ Crteating a strategy is very simple. Just follow these steps:
 
 If you want to make a trade in your strategy you first need to create a `Order`. 
 A order can be created like this: 
-```
+```ts
 let order = new Order(OrderType.BUY, buyPower, limit);
 ```
 
 After that you can either execute the order directly with
 
-```
+```ts
 orderBook.executeOrder(order);
 ```
 
 or add it to the order book in case you've added an limit to your order.
 
-```
+```ts
 orderBook.addOrder(buyOrder);
 ```
 
@@ -113,7 +113,7 @@ In both cases the order will be edited after execution and the `amountOut` and `
 
 A complete example: 
 
-```
+```ts
 let sellOrder = new Order(OrderType.SELL, tradeTokenBalance);
 await orderBook.executeOrder(sellOrder);
 console.log(`Order executed, got ${sellOrder.amountOut} out`);
