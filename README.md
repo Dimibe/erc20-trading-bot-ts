@@ -121,7 +121,7 @@ console.log(`Order executed, got ${sellOrder.amountOut} out`);
 
 #### Add the class to the bot
 All you need to do is to extend the `getStrategy()` function and add your strategy. 
-```
+```ts
 function getStrategy(): Strategy {
   switch (options.strategy) {
     case 'gridTrading':
