@@ -31,6 +31,7 @@ Following options are available:
  |pairAddress|Address of the stable/traded token pair|USDC/WMATIC pair address|
  |routerAddress|Address of the router/DEX|Quickswap address|
  |refreshTime|Time in milliseconds the price is refreshed|1000|
+ |logLevel|Can be either 'info' or 'debug'|debug|
  |strategies|Options for the different strategies|-|
 
 ### Strategies
