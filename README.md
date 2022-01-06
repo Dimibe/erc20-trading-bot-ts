@@ -117,8 +117,9 @@ A complete example:
 
 ```ts
 let sellOrder = new Order(OrderType.SELL, tradeTokenBalance);
-await orderBook.executeOrder(sellOrder);
-console.log(`Order executed, got ${sellOrder.amountOut} out`);
+await orderBook.executeOrder(sellOrder).then((order: Order) => {
+    console.log(`Order executed, got ${order.amountOut} out`);
+});
 ```
 
 #### Add the class to the bot
