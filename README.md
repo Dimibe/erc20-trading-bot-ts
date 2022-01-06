@@ -83,7 +83,7 @@ Crteating a strategy is very simple. Just follow these steps:
 
 - First go in the `src/strategies` folder an create a class for your strategy. 
 - Implement the `Strategy` interface. It will provide 3 functions.
-- The 'init(conversion: number)' function is called once at startup.
+- The `init(conversion: number)` function is called once at startup.
 - The `priceUpdate(conversion: number, priceChange: number)` function is called whenever the price of your trade pair changes. 
 - The `orderLiquidated(order: Order)` function is called when one order is executed. 
 
