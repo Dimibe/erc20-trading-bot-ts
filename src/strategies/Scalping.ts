@@ -4,7 +4,7 @@ import { routerContract, SLIPPAGE, STABLE_TOKEN, tradeTokenContract, TRADE_TOKEN
 import { web3 } from '../Web3Service';
 import { Strategy } from './Strategy';
 import { Order, OrderType } from '../Order';
-import * as orderBook from '../OrderBook';
+import { orderBook } from '../OrderBook';
 
 export class Scalping implements Strategy {
   MAX_TRADES: number;

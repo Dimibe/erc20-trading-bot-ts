@@ -2,7 +2,7 @@ import { logger } from '../logger';
 import { Order, OrderType } from '../Order';
 import { web3 } from '../Web3Service';
 import { Strategy } from './Strategy';
-import * as orderBook from '../OrderBook';
+import { orderBook } from '../OrderBook';
 
 export class GridTradingOld implements Strategy {
   rebalance: boolean;

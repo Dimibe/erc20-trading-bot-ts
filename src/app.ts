@@ -6,7 +6,7 @@ import { GridTradingOld } from './strategies/GridTradingOld';
 import options from './config/options.json';
 import { simulationMode } from './const';
 import { GridTrading } from './strategies/GridTrading';
-import * as orderBook from './OrderBook';
+import { orderBook } from './OrderBook';
 
 const strategy: Strategy = getStrategy();
 let conversion: number;

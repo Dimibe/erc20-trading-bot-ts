@@ -1,77 +1,82 @@
 import { Order, OrderType } from './Order';
 import { web3 } from './Web3Service';
-import { orderBook } from './logger';
+import { orderBook as orderLogger, logger } from './logger';
 import { TransactionReceipt } from '@ethersproject/abstract-provider';
 import { simulationMode, STABLE_TOKEN, TRADE_TOKEN } from './const';
 
-let openOrders: Order[] = [];
+class OrderBook {
+  openOrders: Order[] = [];
 
-export function addOrder(order: Order) {
-  openOrders.push(order);
-}
-export async function executeOrder(order: Order, conversion: number): Promise<Order> {
-  if (!simulationMode) {
-    let txn = await web3.swap(order);
-    order.amountOut = getAmountOut(order, txn);
-    order.transactionHash = txn.transactionHash;
-  } else {
-    order.amountOut = order.tokenOut == TRADE_TOKEN ? order.amountIn / conversion : order.amountIn * conversion;
+  addOrder(order: Order) {
+    this.openOrders.push(order);
   }
-  printSwap(order);
-  return order;
-}
 
-export async function liquidateOrders(conversion: number): Promise<Order[]> {
-  let orders: Order[] = [];
-  for (let order of getLiquidatedOrders(conversion)) {
-    await executeOrder(order, conversion);
-    openOrders = removeOrderFromList(order, openOrders);
-    orders.push(order);
+  public async executeOrder(order: Order, conversion: number): Promise<Order> {
+    if (!simulationMode) {
+      let txn = await web3.swap(order);
+      order.amountOut = OrderBook.getAmountOut(order, txn);
+      order.transactionHash = txn.transactionHash;
+    } else {
+      order.amountOut = order.tokenOut == TRADE_TOKEN ? order.amountIn / conversion : order.amountIn * conversion;
+    }
+    OrderBook.printSwap(order);
+    return order;
   }
-  return orders;
-}
 
-function getLiquidatedOrders(conversion: number) {
-  let buyOrders = getOpenBuyOrders(conversion);
-  let sellOrders = getOpenSellOrders(conversion);
+  public async liquidateOrders(conversion: number): Promise<Order[]> {
+    let orders: Order[] = [];
+    for (let order of this.getLiquidatedOrders(conversion)) {
+      await this.executeOrder(order, conversion);
+      OrderBook.removeOrderFromList(order, this.openOrders);
+      orders.push(order);
+    }
+    return orders;
+  }
 
-  return buyOrders.concat(sellOrders);
-}
+  private getLiquidatedOrders(conversion: number) {
+    let buyOrders = this.getOpenBuyOrders(conversion);
+    let sellOrders = this.getOpenSellOrders(conversion);
 
-function getOpenBuyOrders(conversion: number): Order[] {
-  return openOrders
-    .filter((o) => o.orderType === OrderType.BUY)
-    .filter((o) => o.limit === undefined || conversion <= o.limit);
-}
+    return buyOrders.concat(sellOrders);
+  }
 
-function getOpenSellOrders(conversion: number): Order[] {
-  return openOrders
-    .filter((o) => o.orderType === OrderType.SELL)
-    .filter((o) => o.limit === undefined || conversion >= o.limit);
-}
+  private getOpenBuyOrders(conversion: number): Order[] {
+    return this.openOrders
+      .filter((o) => o.orderType === OrderType.BUY)
+      .filter((o) => o.limit === undefined || conversion <= o.limit);
+  }
 
-function removeOrderFromList(order: Order, list: Order[]): Order[] {
-  let index = list.findIndex((o) => o.nr === order.nr);
-  return list.splice(index, 1);
-}
+  private getOpenSellOrders(conversion: number): Order[] {
+    return this.openOrders
+      .filter((o) => o.orderType === OrderType.SELL)
+      .filter((o) => o.limit === undefined || conversion >= o.limit);
+  }
 
-function getAmountOut(order: Order, txn: TransactionReceipt): number | undefined {
-  if (order.tokenOut == STABLE_TOKEN) {
-    return web3.getStableTokenAmountFromSwap(txn);
-  } else {
-    return web3.getTradeTokenAmountFromSwap(txn);
+  private static removeOrderFromList(order: Order, list: Order[]) {
+    let index = list.findIndex((o) => o.nr === order.nr);
+    list.splice(index, 1);
+  }
+
+  private static getAmountOut(order: Order, txn: TransactionReceipt): number | undefined {
+    if (order.tokenOut == STABLE_TOKEN) {
+      return web3.getStableTokenAmountFromSwap(txn);
+    } else {
+      return web3.getTradeTokenAmountFromSwap(txn);
+    }
+  }
+
+  private static printSwap(order: Order): void {
+    let txnInfo = order.transactionHash === undefined ? '(Simulation)' : `Hash: ${order.transactionHash}`;
+    orderLogger.order(
+      'Nr. %d: Swapped %d %s for %d %s. %s',
+      order.nr,
+      order.amountIn,
+      web3.getSymbol(order.tokenIn),
+      order.amountOut,
+      web3.getSymbol(order.tokenOut),
+      txnInfo,
+    );
   }
 }
 
-function printSwap(order: Order): void {
-  let txnInfo = order.transactionHash === undefined ? '(Simulation)' : `Hash: ${order.transactionHash}`;
-  orderBook.order(
-    'Nr. %d: Swapped %d %s for %d %s. %s',
-    order.nr,
-    order.amountIn,
-    web3.getSymbol(order.tokenIn),
-    order.amountOut,
-    web3.getSymbol(order.tokenOut),
-    txnInfo,
-  );
-}
+export const orderBook = new OrderBook();
