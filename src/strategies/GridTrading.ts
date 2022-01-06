@@ -29,7 +29,12 @@ export class GridTrading implements Strategy {
   }
 
   public async init(conversion: number): Promise<void> {
-    logger.info(`Grids: ${this.gridCount} Size: ${this.gridSize} Buy power per grid: ${this.buyPowerPerGrid}`);
+    logger.info(
+      `Grids: ${this.gridCount} Size: %s Buy power per grid: %s %s`,
+      this.gridSize.toFixed(web3.stableTokenDecimals),
+      this.buyPowerPerGrid.toFixed(web3.stableTokenDecimals),
+      web3.stableTokenSymbol,
+    );
 
     let currentGrid = this.calculateGrid(conversion);
     let amount = (this.gridCount - currentGrid) * this.buyPowerPerGrid;

@@ -35,8 +35,8 @@ export class Order {
   private buildDescription(): string {
     let limit = this.limit?.toFixed(web3.stableTokenDecimals);
     let ref = this.referenceOrder !== undefined ? `Ref Order: ${this.referenceOrder.nr}` : '';
-    let aIn = `${this.amountIn} ${web3.getSymbol(this.tokenIn)}`;
-    let action = this.orderType === OrderType.SELL ? `sell ${aIn}` : `buy ${web3.getSymbol(this.tokenOut)} for ${aIn}`;
+    let aIn = `${this.amountIn.toFixed(web3.getDecimals(this.tokenIn))} ${web3.getSymbol(this.tokenIn)}`;
+    let action = this.orderType === OrderType.SELL ? `Sell ${aIn}` : `Buy ${web3.getSymbol(this.tokenOut)} for ${aIn}`;
     let type = this.limit === undefined ? `market` : `limit: ${limit} ${web3.stableTokenSymbol}`;
     return `Nr ${this.nr}: ${action} @${type}. ${ref}`;
   }
