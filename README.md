@@ -4,13 +4,14 @@ Crypto trading bot which trades erc20 token pairs.
 
 ### Prerequisites
 
+- Node and npm/yarn installed
 - A websocket (wss) url to a provider is needed. Either register online for one or host a local node. 
 - A polygon wallet is needed with matic for the fees and the configured stable token (usdc as default). 
 
 ### Getting started
 
 - Open the secrets.json in the src/config folder and fill in the provider url and your private key. 
-- Run `yarn start` to run the bot.
+- Run `yarn start` / `npm run start` to run the bot.
 
 ### Options
 
