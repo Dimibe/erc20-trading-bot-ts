@@ -20,7 +20,7 @@ Following options are available:
  |Name|Function|Default|
  |----|----|----|
  |strategy|The strategy which the bot should use|Grid Trading|
- |simulationMode|If true no swapps will be actually made|false|
+ |simulationMode|If true no swapps will be actually made|true|
  |slippage|Change from price in % to buy token|0.1%|
  |maxGwei|The max gwei used for a transaction|80 gwei|
  |gasLimit|Gas limit|250000|
