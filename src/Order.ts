@@ -1,4 +1,5 @@
 import { STABLE_TOKEN, TRADE_TOKEN } from './const';
+import { logger } from './logger';
 import { web3 } from './Web3Service';
 
 export class Order {
@@ -12,6 +13,7 @@ export class Order {
   transactionHash?: string;
   referenceOrder?: Order;
   limit?: number;
+  description: string;
 
   constructor(orderType: OrderType, amountIn: number, limit?: number, referenceOrder?: Order) {
     this.nr = Order.nrCount++;
@@ -26,12 +28,21 @@ export class Order {
     this.amountIn = amountIn;
     this.limit = limit;
     this.referenceOrder = referenceOrder;
+    this.description = this.buildDescription();
+    logger.info(`Created order ${this}`);
+  }
+
+  private buildDescription(): string {
+    let limit = this.limit?.toFixed(web3.stableTokenDecimals);
+    let ref = this.referenceOrder !== undefined ? `Ref Order: ${this.referenceOrder.nr}` : '';
+    let aIn = `${this.amountIn} ${web3.getSymbol(this.tokenIn)}`;
+    let action = this.orderType === OrderType.SELL ? `sell ${aIn}` : `buy ${web3.getSymbol(this.tokenOut)} for ${aIn}`;
+    let type = this.limit === undefined ? `market` : `limit: ${limit} ${web3.stableTokenSymbol}`;
+    return `Nr ${this.nr}: ${action} @${type}. ${ref}`;
   }
 
   public toString(): string {
-    return `Order ${this.nr}: In: ${this.amountIn}, Limit: ${this.limit?.toFixed(web3.stableTokenDecimals)}, Ref Order: ${
-      this.referenceOrder?.nr
-    }`;
+    return this.description;
   }
 }
 

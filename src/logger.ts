@@ -1,4 +1,5 @@
 import winston, { format, transports } from 'winston';
+import options from './config/options.json';
 
 const defaultLogConfig = {
   levels: {
@@ -30,6 +31,7 @@ const consoleFormat = format.combine(logFormat, format.colorize({ all: true, col
 
 export const logger: any = winston.createLogger({
   levels: defaultLogConfig.levels,
+  level: options.logLevel,
   format: logFormat,
   transports: [
     new transports.Console({ format: consoleFormat }),

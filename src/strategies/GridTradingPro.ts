@@ -35,7 +35,7 @@ export class GridTradingPro implements Strategy {
     let amount = (this.gridCount - currentGrid) * this.buyPowerPerGrid;
     let refOrder = new Order(OrderType.BUY, amount);
 
-    refOrder = await orderBook.executeOrder(refOrder);
+    refOrder = await orderBook.executeOrder(refOrder, conversion);
 
     for (let i = currentGrid + 2; i <= this.gridCount; i++) {
       let total = refOrder.amountOut ?? amount / conversion;

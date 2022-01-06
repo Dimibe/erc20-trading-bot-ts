@@ -2,18 +2,20 @@ import { Order, OrderType } from './Order';
 import { web3 } from './Web3Service';
 import { orderBook } from './logger';
 import { TransactionReceipt } from '@ethersproject/abstract-provider';
-import { simulationMode, STABLE_TOKEN } from './const';
+import { simulationMode, STABLE_TOKEN, TRADE_TOKEN } from './const';
 
 let openOrders: Order[] = [];
 
 export function addOrder(order: Order) {
   openOrders.push(order);
 }
-export async function executeOrder(order: Order): Promise<Order> {
+export async function executeOrder(order: Order, conversion: number): Promise<Order> {
   if (!simulationMode) {
     let txn = await web3.swap(order);
     order.amountOut = getAmountOut(order, txn);
     order.transactionHash = txn.transactionHash;
+  } else {
+    order.amountOut = order.tokenOut == TRADE_TOKEN ? order.amountIn / conversion : order.amountIn * conversion;
   }
   printSwap(order);
   return order;
@@ -22,18 +24,11 @@ export async function executeOrder(order: Order): Promise<Order> {
 export async function liquidateOrders(conversion: number): Promise<Order[]> {
   let orders: Order[] = [];
   for (let order of getLiquidatedOrders(conversion)) {
-    await executeOrder(order);
+    await executeOrder(order, conversion);
     openOrders = removeOrderFromList(order, openOrders);
     orders.push(order);
   }
   return orders;
-}
-
-export function printOrders() {
-  console.log(`Orders:`);
-  for (let order of openOrders.sort((o1, o2) => o1.limit! - o2.limit!)) {
-    console.log(`${order}`);
-  }
 }
 
 function getLiquidatedOrders(conversion: number) {
@@ -69,9 +64,14 @@ function getAmountOut(order: Order, txn: TransactionReceipt): number | undefined
 }
 
 function printSwap(order: Order): void {
+  let txnInfo = order.transactionHash === undefined ? '(Simulation)' : `Hash: ${order.transactionHash}`;
   orderBook.order(
-    `Swapped ${order.amountIn} ${web3.getSymbol(order.tokenIn)} for ${order.amountOut} ${web3.getSymbol(
-      order.tokenOut,
-    )}. Hash: ${order.transactionHash}`,
+    'Nr. %d: Swapped %d %s for %d %s. %s',
+    order.nr,
+    order.amountIn,
+    web3.getSymbol(order.tokenIn),
+    order.amountOut,
+    web3.getSymbol(order.tokenOut),
+    txnInfo,
   );
 }

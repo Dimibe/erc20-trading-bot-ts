@@ -37,7 +37,7 @@ async function run(): Promise<void> {
   const priceChange = conversion - lastPrice;
 
   if (priceChange !== 0) {
-    logger.info(
+    logger.debug(
       `Price: ${conversion} ${web3.stableTokenSymbol} / Change: ${priceChange.toFixed(web3.stableTokenDecimals)} ${
         web3.stableTokenSymbol
       }`,

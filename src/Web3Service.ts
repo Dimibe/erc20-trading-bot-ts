@@ -77,9 +77,10 @@ class Web3Service {
     const amountOutMin = amounts[1].sub(amounts[1].div(100 / SLIPPAGE));
 
     logger.transaction(
-      `Swapping  ${utils.formatUnits(amountIn, decimals)} ${this.getSymbol(order.tokenIn)} for ${this.getSymbol(
-        order.tokenOut,
-      )}...`,
+      `Swapping  %s %s for %s...`,
+      utils.formatUnits(amountIn, decimals),
+      this.getSymbol(order.tokenIn),
+      this.getSymbol(order.tokenOut),
     );
 
     let txn = await this.executeSwap(amountIn, amountOutMin, [order.tokenIn, order.tokenOut], contract);

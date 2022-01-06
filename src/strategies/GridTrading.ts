@@ -41,9 +41,9 @@ export class GridTrading implements Strategy {
       buyPower = buyPower - currentValue;
     }
     if (buyPower > 0) {
-      await this.executeBuy(buyPower, currentGrid);
+      await this.executeBuy(buyPower, currentGrid, conversion);
     } else {
-      await this.executeSell(-buyPower / conversion, currentGrid);
+      await this.executeSell(-buyPower / conversion, currentGrid, conversion);
     }
   }
 
@@ -55,25 +55,25 @@ export class GridTrading implements Strategy {
 
     if (currentGrid >= this.nextSell) {
       let amount = (currentGrid - this.nextSell + 1) * (this.buyPowerPerGrid / conversion);
-      await this.executeSell(amount, currentGrid);
+      await this.executeSell(amount, currentGrid, conversion);
     } else if (currentGrid <= this.nextBuy) {
       let amount = (this.nextBuy - currentGrid + 1) * this.buyPowerPerGrid;
-      await this.executeBuy(amount, currentGrid);
+      await this.executeBuy(amount, currentGrid, conversion);
     }
   }
 
   public async orderLiquidated(order: Order): Promise<void> {}
 
-  private async executeSell(amount: number, currentGrid: number): Promise<void> {
+  private async executeSell(amount: number, currentGrid: number, conversion: number): Promise<void> {
     let order = new Order(OrderType.SELL, amount);
-    await orderBook.executeOrder(order);
+    await orderBook.executeOrder(order, conversion);
     this.nextSell = currentGrid + 1;
     this.nextBuy = currentGrid - 2;
   }
 
-  private async executeBuy(amount: number, currentGrid: number): Promise<void> {
+  private async executeBuy(amount: number, currentGrid: number, conversion: number): Promise<void> {
     let order = new Order(OrderType.BUY, amount);
-    await orderBook.executeOrder(order);
+    await orderBook.executeOrder(order, conversion);
     this.nextSell = currentGrid + 2;
     this.nextBuy = currentGrid - 1;
   }

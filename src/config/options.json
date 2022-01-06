@@ -11,6 +11,7 @@
   "pairAddress": "0x6e7a5FAFcec6BB1e78bAE2A1F0B612012BF14827",
   "routerAddress": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
   "refreshTime": 1000,
+  "logLevel": "debug",
   "strategies": {
     "gridTrading": {
       "range": {
