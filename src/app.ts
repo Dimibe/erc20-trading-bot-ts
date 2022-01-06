@@ -33,31 +33,31 @@ async function main(): Promise<void> {
 }
 
 async function run(): Promise<void> {
-  const conversion = await web3.getCurrentPrice();
-  const priceChange = conversion - lastPrice;
+  try {
+    const conversion = await web3.getCurrentPrice();
+    const priceChange = conversion - lastPrice;
 
-  if (priceChange !== 0) {
-    logger.debug(
-      `Price: ${conversion} ${web3.stableTokenSymbol} / Change: ${priceChange.toFixed(web3.stableTokenDecimals)} ${
-        web3.stableTokenSymbol
-      }`,
-    );
-    try {
+    if (priceChange !== 0) {
+      logger.debug(
+        `Price: ${conversion} ${web3.stableTokenSymbol} / Change: ${priceChange.toFixed(web3.stableTokenDecimals)} ${
+          web3.stableTokenSymbol
+        }`,
+      );
       let orders = await orderBook.liquidateOrders(conversion);
       for (let order of orders) {
         await strategy.orderLiquidated(order);
       }
       await strategy.priceUpdate(conversion, priceChange);
-    } catch (e) {
-      if (e instanceof Error) {
-        logger.error(e.message);
-      } else {
-        logger.error(e);
-      }
+    }
+    lastPrice = conversion;
+  } catch (e) {
+    if (e instanceof Error) {
+      logger.error(e.message);
+    } else {
+      logger.error(e);
     }
   }
 
-  lastPrice = conversion;
   setTimeout(run, options.refreshTime);
 }
 
