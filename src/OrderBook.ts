@@ -51,7 +51,7 @@ function getOpenSellOrders(conversion: number): Order[] {
 }
 
 function removeOrderFromList(order: Order, list: Order[]): Order[] {
-  let index = list.findIndex((o) => o === order);
+  let index = list.findIndex((o) => o.nr === order.nr);
   return list.splice(index, 1);
 }
 

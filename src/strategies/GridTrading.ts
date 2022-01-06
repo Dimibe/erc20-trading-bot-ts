@@ -55,12 +55,12 @@ export class GridTrading implements Strategy {
       let profit = order.amountOut! - this.buyPowerPerGrid;
       logger.info(`Made ${profit} ${web3.stableTokenSymbol} profit`);
       if (order.limit !== undefined) {
-        let buyOrder = new Order(OrderType.BUY, this.buyPowerPerGrid, this.calculatePrice(order.limit - 2));
+        let buyOrder = new Order(OrderType.BUY, this.buyPowerPerGrid, order.limit - 2 * this.gridSize);
         orderBook.addOrder(buyOrder);
       }
     } else if (order.orderType === OrderType.BUY) {
       if (order.limit !== undefined) {
-        let sellOrder = new Order(OrderType.SELL, order.amountOut!, this.calculatePrice(order.limit + 2), order);
+        let sellOrder = new Order(OrderType.SELL, order.amountOut!, order.limit + 2 * this.gridSize, order);
         orderBook.addOrder(sellOrder);
       }
     }
