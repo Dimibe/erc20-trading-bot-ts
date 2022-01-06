@@ -1,7 +1,7 @@
 import { logger } from '../logger';
-import { Order, OrderType } from '../Order';
 import { web3 } from '../Web3Service';
 import { Strategy } from './Strategy';
+import { Order, OrderType } from '../Order';
 import * as orderBook from '../OrderBook';
 
 export class GridTrading implements Strategy {
@@ -13,8 +13,6 @@ export class GridTrading implements Strategy {
   buyPowerPerGrid: number;
   gridCount: number;
   gridSize: number;
-  nextSell!: number;
-  nextBuy!: number;
 
   public constructor(strategyOptions: any) {
     this.rebalance = strategyOptions.rebalance;
@@ -34,49 +32,41 @@ export class GridTrading implements Strategy {
     logger.info(`Grids: ${this.gridCount} Size: ${this.gridSize} Buy power per grid: ${this.buyPowerPerGrid}`);
 
     let currentGrid = this.calculateGrid(conversion);
-    let buyPower = (this.gridCount - currentGrid) * this.buyPowerPerGrid;
-
-    if (this.rebalance) {
-      let currentValue = (await web3.getTradeTokenBalance()) * conversion;
-      buyPower = buyPower - currentValue;
-    }
-    if (buyPower > 0) {
-      await this.executeBuy(buyPower, currentGrid, conversion);
-    } else {
-      await this.executeSell(-buyPower / conversion, currentGrid, conversion);
-    }
-  }
-
-  public async priceUpdate(conversion: number): Promise<void> {
-    let currentGrid = this.calculateGrid(conversion);
-    let sellPrice = this.min + this.gridSize * this.nextSell;
-    let buyPrice = this.min + this.gridSize * (this.nextBuy + 1);
-    logger.info(`Grid ${currentGrid} : Buy: ${this.nextBuy} (${buyPrice}$) Sell: ${this.nextSell} (${sellPrice}$)`);
-
-    if (currentGrid >= this.nextSell) {
-      let amount = (currentGrid - this.nextSell + 1) * (this.buyPowerPerGrid / conversion);
-      await this.executeSell(amount, currentGrid, conversion);
-    } else if (currentGrid <= this.nextBuy) {
-      let amount = (this.nextBuy - currentGrid + 1) * this.buyPowerPerGrid;
-      await this.executeBuy(amount, currentGrid, conversion);
-    }
-  }
-
-  public async orderLiquidated(order: Order): Promise<void> {}
-
-  private async executeSell(amount: number, currentGrid: number, conversion: number): Promise<void> {
-    let order = new Order(OrderType.SELL, amount);
-    await orderBook.executeOrder(order, conversion);
-    this.nextSell = currentGrid + 1;
-    this.nextBuy = currentGrid - 2;
-  }
-
-  private async executeBuy(amount: number, currentGrid: number, conversion: number): Promise<void> {
+    let amount = (this.gridCount - currentGrid) * this.buyPowerPerGrid;
     let order = new Order(OrderType.BUY, amount);
-    await orderBook.executeOrder(order, conversion);
-    this.nextSell = currentGrid + 2;
-    this.nextBuy = currentGrid - 1;
+
+    order = await orderBook.executeOrder(order, conversion);
+
+    for (let i = currentGrid + 2; i <= this.gridCount; i++) {
+      let total = order.amountOut ?? amount / conversion;
+      let value = total / (this.gridCount - (currentGrid + 2));
+      let sellOrder = new Order(OrderType.SELL, value, this.calculatePrice(i), order);
+      orderBook.addOrder(sellOrder);
+    }
+
+    for (let i = currentGrid - 1; i >= 0; i--) {
+      let buyOrder = new Order(OrderType.BUY, this.buyPowerPerGrid, this.calculatePrice(i));
+      orderBook.addOrder(buyOrder);
+    }
   }
+
+  public async orderLiquidated(order: Order): Promise<void> {
+    if (order.orderType === OrderType.SELL) {
+      let profit = order.amountOut! - this.buyPowerPerGrid;
+      logger.info(`Made ${profit} ${web3.stableTokenSymbol} profit`);
+      if (order.limit !== undefined) {
+        let buyOrder = new Order(OrderType.BUY, this.buyPowerPerGrid, this.calculatePrice(order.limit - 2));
+        orderBook.addOrder(buyOrder);
+      }
+    } else if (order.orderType === OrderType.BUY) {
+      if (order.limit !== undefined) {
+        let sellOrder = new Order(OrderType.SELL, order.amountOut!, this.calculatePrice(order.limit + 2), order);
+        orderBook.addOrder(sellOrder);
+      }
+    }
+  }
+
+  public async priceUpdate(): Promise<void> {}
 
   private calculateGrid(conversion: number): number {
     let grid = Math.floor((conversion - this.min) / this.gridSize);
@@ -89,5 +79,9 @@ export class GridTrading implements Strategy {
       return this.gridCount;
     }
     return grid;
+  }
+
+  private calculatePrice(grid: number): number {
+    return this.min + grid * this.gridSize;
   }
 }

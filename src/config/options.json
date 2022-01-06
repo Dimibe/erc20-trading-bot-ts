@@ -1,5 +1,5 @@
 {
-  "strategy": "gridTradingPro",
+  "strategy": "gridTrading",
   "simulationMode": false,
   "slippage": 0.1,
   "maxGwei": 80,

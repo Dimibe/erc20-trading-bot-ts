@@ -2,10 +2,10 @@ import { logger } from './logger';
 import { web3 } from './Web3Service';
 import { Strategy } from './strategies/Strategy';
 import { Scalping } from './strategies/Scalping';
-import { GridTrading } from './strategies/GridTrading';
+import { GridTradingOld } from './strategies/GridTradingOld';
 import options from './config/options.json';
 import { simulationMode } from './const';
-import { GridTradingPro } from './strategies/GridTradingPro';
+import { GridTrading } from './strategies/GridTrading';
 import * as orderBook from './OrderBook';
 
 const strategy: Strategy = getStrategy();
@@ -67,8 +67,8 @@ function getStrategy(): Strategy {
       return new Scalping(options.strategies.scalping);
     case 'gridTrading':
       return new GridTrading(options.strategies.gridTrading);
-    case 'gridTradingPro':
-      return new GridTradingPro(options.strategies.gridTrading);
+    case 'gridTradingOld':
+      return new GridTradingOld(options.strategies.gridTrading);
     default:
       throw Error(`No strategy ${options.strategy} available`);
   }
