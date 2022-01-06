@@ -51,7 +51,9 @@ Following options are available:
 - The bot calculates number of grids in the range.
 - The bot calculates the initial grid and buys initial tokens.
 - Whenever the price falls one grid the bot buys and when the price goes up one grid the bot sells. 
-
+- Note: The total buy power is divided by the number of grids. 
+ - So if the gridMargin is to small the trade amount will be very small. 
+ - If the grid margin is in contrast to big, the bot can't gain profit from small fluctuations.
 
 #### Scalping
 
