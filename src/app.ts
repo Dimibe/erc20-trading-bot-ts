@@ -7,10 +7,31 @@ import options from './config/options.json';
 import { simulationMode } from './const';
 import { GridTrading } from './strategies/GridTrading';
 import { orderBook } from './OrderBook';
+import express from 'express';
+import { readFileSync } from 'fs';
 
+const app = express();
+const port = options.serverPort;
 const strategy: Strategy = getStrategy();
+
 let conversion: number;
 let lastPrice: number;
+let botRunning: boolean = true;
+
+app.get('/logs/:filename', (req, res) => {
+  let fileName = req.params.filename;
+  try {
+    let file = readFileSync(`logs/${fileName}.log`, 'utf-8');
+    file = file.replace(new RegExp('\n', 'g'), '<br />');
+    res.send(file);
+  } catch (e) {
+    res.status(500).send('The specified log file does not exist.');
+  }
+});
+
+app.listen(port, () => {
+  return logger.info(`⚡️Server is running at http://localhost:${port}`);
+});
 
 main();
 
@@ -33,32 +54,32 @@ async function main(): Promise<void> {
 }
 
 async function run(): Promise<void> {
-  try {
-    const conversion = await web3.getCurrentPrice();
-    const priceChange = conversion - lastPrice;
-
-    if (priceChange !== 0) {
-      logger.debug(
-        `Price: ${conversion} ${web3.stableTokenSymbol} / Change: ${priceChange.toFixed(web3.stableTokenDecimals)} ${
-          web3.stableTokenSymbol
-        }`,
-      );
-      let orders = await orderBook.liquidateOrders(conversion);
-      for (let order of orders) {
-        await strategy.orderLiquidated(order);
+  while (botRunning) {
+    try {
+      const conversion = await web3.getCurrentPrice();
+      const priceChange = conversion - lastPrice;
+      if (priceChange !== 0) {
+        logger.debug(
+          `Price: ${conversion} ${web3.stableTokenSymbol} / Change: ${priceChange.toFixed(web3.stableTokenDecimals)} ${
+            web3.stableTokenSymbol
+          }`,
+        );
+        let orders = await orderBook.liquidateOrders(conversion);
+        for (let order of orders) {
+          await strategy.orderLiquidated(order);
+        }
+        await strategy.priceUpdate(conversion, priceChange);
       }
-      await strategy.priceUpdate(conversion, priceChange);
+      lastPrice = conversion;
+    } catch (e) {
+      if (e instanceof Error) {
+        logger.error(e.message);
+      } else {
+        logger.error(e);
+      }
     }
-    lastPrice = conversion;
-  } catch (e) {
-    if (e instanceof Error) {
-      logger.error(e.message);
-    } else {
-      logger.error(e);
-    }
+    await new Promise((f) => setTimeout(f, options.refreshTime));
   }
-
-  setTimeout(run, options.refreshTime);
 }
 
 function getStrategy(): Strategy {

@@ -33,6 +33,7 @@ Following options are available:
  |routerAddress|Address of the router/DEX|Quickswap address|
  |refreshTime|Time in milliseconds the price is refreshed|1000|
  |logLevel|Can be either 'info' or 'debug'|debug|
+ |serverPort|The port were the server runs on|3000|
  |strategies|Options for the different strategies|-|
 
 ### Strategies
