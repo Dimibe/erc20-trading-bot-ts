@@ -3,32 +3,32 @@ import { logger } from './logger';
 import { web3 } from './Web3Service';
 
 export class Order {
-  static nrCount = 0;
-  nr: number;
-  orderType: OrderType;
-  tokenIn: string;
-  amountIn: number;
-  tokenOut: string;
-  amountOut?: number;
-  transactionHash?: string;
-  referenceOrder?: Order;
-  limit?: number;
-  description: string;
+  private static nrCount = 0;
+  private _nr: number;
+  private _description: string;
+  private _orderType: OrderType;
+  private _tokenIn: string;
+  private _amountIn: number;
+  private _tokenOut: string;
+  private _amountOut?: number;
+  private _transactionHash?: string;
+  private _referenceOrder?: Order;
+  private _limit?: number;
 
   constructor(orderType: OrderType, amountIn: number, limit?: number, referenceOrder?: Order) {
-    this.nr = Order.nrCount++;
-    this.orderType = orderType;
+    this._nr = Order.nrCount++;
+    this._orderType = orderType;
     if (orderType === OrderType.BUY) {
-      this.tokenIn = STABLE_TOKEN;
-      this.tokenOut = TRADE_TOKEN;
+      this._tokenIn = STABLE_TOKEN;
+      this._tokenOut = TRADE_TOKEN;
     } else {
-      this.tokenIn = TRADE_TOKEN;
-      this.tokenOut = STABLE_TOKEN;
+      this._tokenIn = TRADE_TOKEN;
+      this._tokenOut = STABLE_TOKEN;
     }
-    this.amountIn = amountIn;
-    this.limit = limit;
-    this.referenceOrder = referenceOrder;
-    this.description = this.buildDescription();
+    this._amountIn = amountIn;
+    this._limit = limit;
+    this._referenceOrder = referenceOrder;
+    this._description = this.buildDescription();
     logger.info(`Created order ${this}`);
   }
 
@@ -42,7 +42,47 @@ export class Order {
   }
 
   public toString(): string {
-    return this.description;
+    return this._description;
+  }
+
+  public get nr() {
+    return this._nr;
+  }
+
+  public get orderType() {
+    return this._orderType;
+  }
+
+  public get amountIn() {
+    return this._amountIn;
+  }
+
+  public get amountOut() {
+    return this._amountOut;
+  }
+
+  public get limit() {
+    return this._limit;
+  }
+
+  public get description() {
+    return this._description;
+  }
+
+  public get transactionHash() {
+    return this._transactionHash;
+  }
+
+  public get referenceOrder() {
+    return this._referenceOrder;
+  }
+
+  public get tokenIn() {
+    return this._tokenIn;
+  }
+
+  public get tokenOut() {
+    return this._tokenOut;
   }
 }
 
