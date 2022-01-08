@@ -12,7 +12,7 @@ class OrderBook {
   }
 
   public async executeOrder(order: Order, conversion: number): Promise<Order> {
-    if (!simulationMode) {
+    if (!simulationMode && this.checkTokenBalance(order)) {
       let txn = await web3.swap(order);
       order.amountOut = OrderBook.getAmountOut(order, txn);
       order.transactionHash = txn.transactionHash;
@@ -31,6 +31,14 @@ class OrderBook {
       orders.push(order);
     }
     return orders;
+  }
+
+  private async checkTokenBalance(order: Order) {
+    if ((await web3.getTokenBalance(order.tokenIn)) < order.amountIn) {
+      logger.warn(`Insufficient token amount for execution of order ${order.nr}`);
+      return false;
+    }
+    return true;
   }
 
   private getLiquidatedOrders(conversion: number) {

@@ -118,6 +118,14 @@ class Web3Service {
     return Number(utils.formatUnits(gasPrice, 'gwei'));
   }
 
+  static getTokenBalance(token: string): Promise<number> {
+    if (token === STABLE_TOKEN) {
+      return Web3Service.getStableTokenBalance();
+    } else {
+      return Web3Service.getTradeTokenBalance();
+    }
+  }
+
   static async getStableTokenBalance(): Promise<number> {
     let balance = await stableTokenContract.balanceOf(wallet.address);
     return Number(utils.formatUnits(balance, this.stableTokenDecimals));
