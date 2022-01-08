@@ -16,6 +16,7 @@ const defaultLogConfig = {
     info: 'black',
     debug: 'grey',
     order: 'cyan',
+    balance: 'cyan',
   },
 };
 
