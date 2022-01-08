@@ -84,6 +84,14 @@ export class Order {
   public get tokenOut() {
     return this._tokenOut;
   }
+
+  public set amountOut(amountOut) {
+    this._amountOut = amountOut;
+  }
+
+  public set transactionHash(hash) {
+    this._transactionHash = hash;
+  }
 }
 
 export enum OrderType {
