@@ -41,7 +41,7 @@ export class GridTrading implements Strategy {
     let total = amount / conversion;
 
     if (this.rebalance) {
-      amount -= Math.max(0, (await web3.getTradeTokenBalance()) * conversion);
+      amount = Math.max(0, amount - (await web3.getTradeTokenBalance()) * conversion);
     }
 
     let order = new Order(OrderType.BUY, amount);

@@ -16,10 +16,10 @@
   "strategies": {
     "gridTrading": {
       "range": {
-        "min": 2.00,
-        "max": 2.30
+        "min": 1.80,
+        "max": 2.10
       },
-      "totalBuyPower": 100,
+      "totalBuyPower": 80,
       "gridMargin": 0.5,
       "rebalance": true
     },
