@@ -4,7 +4,7 @@ import { Strategy } from './strategies/Strategy';
 import { Scalping } from './strategies/Scalping';
 import { GridTradingOld } from './strategies/GridTradingOld';
 import options from './config/options.json';
-import { simulationMode } from './const';
+import { simulationMode, wallet } from './const';
 import { GridTrading } from './strategies/GridTrading';
 import { orderBook } from './OrderBook';
 import express from 'express';
@@ -17,6 +17,23 @@ const strategy: Strategy = getStrategy();
 let conversion: number;
 let lastPrice: number;
 let botRunning: boolean = true;
+
+app.get('/info', async (req, res) => {
+  const coinBalance = await web3.getCoinBalance();
+  const stableTokenBalance = await web3.getStableTokenBalance();
+  const tradeTokenBalance = await web3.getTradeTokenBalance();
+
+  let info = `
+  ***************************
+  Info: 
+  Address: ${await wallet.getAddress()}
+  ${options.coinName}: ${coinBalance}
+  ${web3.stableTokenSymbol}: ${stableTokenBalance}
+  ${web3.tradeTokenSymbol}: ${tradeTokenBalance}
+  ***************************
+  `;
+  res.send(info.replace(new RegExp('\n', 'g'), '<br />'));
+});
 
 app.get('/logs/:filename', (req, res) => {
   let fileName = req.params.filename;

@@ -56,3 +56,13 @@ export const orderBook: any = winston.createLogger({
     new transports.File({ filename: 'logs/orderBook.log' }),
   ],
 });
+
+export const balanceLog: any = winston.createLogger({
+  levels: { balance: 1 },
+  level: 'balance',
+  format: logFormat,
+  transports: [
+    new transports.Console({ format: consoleFormat }),
+    new transports.File({ filename: 'logs/balance.log' }),
+  ],
+});

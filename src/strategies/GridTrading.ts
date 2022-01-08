@@ -1,4 +1,4 @@
-import { logger } from '../logger';
+import { logger, balanceLog } from '../logger';
 import { web3 } from '../Web3Service';
 import { Strategy } from './Strategy';
 import { Order, OrderType } from '../Order';
@@ -38,12 +38,16 @@ export class GridTrading implements Strategy {
 
     let currentGrid = this.calculateGrid(conversion);
     let amount = (this.gridCount - currentGrid) * this.buyPowerPerGrid;
-    let order = new Order(OrderType.BUY, amount);
+    let total = amount / conversion;
 
-    order = await orderBook.executeOrder(order, conversion);
+    if (this.rebalance) {
+      amount -= (await web3.getTradeTokenBalance()) * conversion;
+    }
+
+    let order = new Order(OrderType.BUY, amount);
+    await orderBook.executeOrder(order, conversion);
 
     for (let i = currentGrid + 2; i <= this.gridCount; i++) {
-      let total = order.amountOut ?? amount / conversion;
       let value = total / (this.gridCount - (currentGrid + 2));
       let sellOrder = new Order(OrderType.SELL, value, this.calculatePrice(i), order);
       orderBook.addOrder(sellOrder);
@@ -58,7 +62,7 @@ export class GridTrading implements Strategy {
   public async orderLiquidated(order: Order): Promise<void> {
     if (order.orderType === OrderType.SELL) {
       let profit = order.amountOut! - this.buyPowerPerGrid;
-      logger.info(`Made ${profit} ${web3.stableTokenSymbol} profit with order ${order.nr}`);
+      balanceLog.balance(`Made ${profit} ${web3.stableTokenSymbol} profit with order ${order.nr}`);
       if (order.limit !== undefined) {
         let buyOrder = new Order(OrderType.BUY, this.buyPowerPerGrid, order.limit - 2 * this.gridSize);
         orderBook.addOrder(buyOrder);
