@@ -11,15 +11,16 @@ import express from 'express';
 import { readFileSync } from 'fs';
 
 const logger = LogFactory.createLogger('Server');
+
 const app = express();
 const port = options.serverPort;
 const strategy: Strategy = getStrategy();
 
 let conversion: number;
 let lastPrice: number;
-let botRunning: boolean = true;
+let botRunning: boolean;
 
-app.get('/info', async (req, res) => {
+app.get('/info', async (_, res) => {
   const coinBalance = await web3.getCoinBalance();
   const stableTokenBalance = await web3.getStableTokenBalance();
   const tradeTokenBalance = await web3.getTradeTokenBalance();
@@ -47,9 +48,13 @@ app.get('/logs/:filename', (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  return logger.info(`⚡️Server is running at http://localhost:${port}`);
+app.get('/botState', (_, res) => res.send(`Bot running: ${botRunning}`));
+app.get('/botState/start', (_, res) => {
+  let started = start();
+  res.send(started ? 'Bot started': 'Bot already running');
 });
+
+app.listen(port, () => logger.info(`⚡️Server started and running at port ${port}`));
 
 main();
 
@@ -68,7 +73,16 @@ async function main(): Promise<void> {
 
   await strategy.init(conversion);
 
-  run();
+  start();
+}
+
+function start() {
+  if (!botRunning) {
+    botRunning = true;
+    run();
+    return true;
+  }
+  return false;
 }
 
 async function run(): Promise<void> {
@@ -98,6 +112,7 @@ async function run(): Promise<void> {
     }
     await new Promise((f) => setTimeout(f, options.refreshTime));
   }
+  botRunning = false;
 }
 
 function getStrategy(): Strategy {
