@@ -1,4 +1,4 @@
-import { logger } from './logger';
+import LogFactory from './logger';
 import { web3 } from './Web3Service';
 import { Strategy } from './strategies/Strategy';
 import { Scalping } from './strategies/Scalping';
@@ -10,6 +10,7 @@ import { orderBook } from './OrderBook';
 import express from 'express';
 import { readFileSync } from 'fs';
 
+const logger = LogFactory.createLogger('Server');
 const app = express();
 const port = options.serverPort;
 const strategy: Strategy = getStrategy();

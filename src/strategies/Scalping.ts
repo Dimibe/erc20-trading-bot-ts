@@ -1,10 +1,12 @@
 import { BigNumber, utils } from 'ethers';
-import { logger } from '../logger';
+import LogFactory from '../logger';
 import { routerContract, SLIPPAGE, STABLE_TOKEN, tradeTokenContract, TRADE_TOKEN, wallet } from '../const';
 import { web3 } from '../Web3Service';
 import { Strategy } from './Strategy';
 import { Order, OrderType } from '../Order';
 import { orderBook } from '../OrderBook';
+
+const logger = LogFactory.createLogger('Scalping');
 
 export class Scalping implements Strategy {
   MAX_TRADES: number;

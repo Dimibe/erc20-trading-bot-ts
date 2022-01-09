@@ -15,9 +15,11 @@ import {
 import options from './config/options.json';
 import { TransactionReceipt, TransactionResponse } from '@ethersproject/abstract-provider';
 import { BigNumber, Contract, utils } from 'ethers';
-import { logger } from './logger';
+import LogFactory from './logger';
 import axios from 'axios';
 import { Order } from './Order';
+
+const logger = LogFactory.createLogger('Web3Service');
 
 class Web3Service {
   static tradeTokenDecimals: number;
@@ -45,12 +47,12 @@ class Web3Service {
       gasLimit: GAS_LIMIT,
     };
 
-    logger.transaction('Swapping...');
+    logger.log('transaction', 'Swapping...');
 
     const approveTx: TransactionResponse = await tokenContract.approve(router, amountIn, options);
-    logger.transaction(`Approve transaction hash: ${approveTx.hash}`);
+    logger.log('transaction', `Approve transaction hash: ${approveTx.hash}`);
     await approveTx.wait();
-    logger.transaction(`Swap approved.`);
+    logger.log('transaction', `Swap approved.`);
 
     const swapTx: TransactionResponse = await routerContract.swapExactTokensForTokens(
       amountIn,
@@ -60,9 +62,9 @@ class Web3Service {
       Date.now() + 1000 * 60 * 10,
       options,
     );
-    logger.transaction(`Swap transaction hash: ${swapTx.hash}`);
+    logger.log('transaction', `Swap transaction hash: ${swapTx.hash}`);
     let tx = await swapTx.wait();
-    logger.transaction('Swap done!');
+    logger.log('transaction', 'Swap done!');
 
     await this.info('transaction');
     return tx;
@@ -76,7 +78,8 @@ class Web3Service {
     const amounts: BigNumber[] = await routerContract.getAmountsOut(amountIn, [order.tokenIn, order.tokenOut]);
     const amountOutMin = amounts[1].sub(amounts[1].div(100 / SLIPPAGE));
 
-    logger.transaction(
+    logger.log(
+      'transaction',
       `Swapping  %s %s for %s...`,
       utils.formatUnits(amountIn, decimals),
       this.getSymbol(order.tokenIn),

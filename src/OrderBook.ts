@@ -1,8 +1,10 @@
 import { Order, OrderType } from './Order';
 import { web3 } from './Web3Service';
-import { orderBook as orderLogger, logger } from './logger';
+import LogFactory from './logger';
 import { TransactionReceipt } from '@ethersproject/abstract-provider';
 import { simulationMode, STABLE_TOKEN, TRADE_TOKEN } from './const';
+
+const logger = LogFactory.createLogger('OrderBook');
 
 class OrderBook {
   openOrders: Order[] = [];
@@ -75,7 +77,7 @@ class OrderBook {
 
   private static printSwap(order: Order): void {
     let txnInfo = order.transactionHash === undefined ? '(Simulation)' : `Hash: ${order.transactionHash}`;
-    orderLogger.order(
+    LogFactory.orderBookLog.info(
       'Nr. %d: Swapped %d %s for %d %s. %s',
       order.nr,
       order.amountIn,

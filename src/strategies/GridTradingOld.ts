@@ -1,8 +1,10 @@
-import { logger } from '../logger';
+import LogFactory from '../logger';
 import { Order, OrderType } from '../Order';
 import { web3 } from '../Web3Service';
 import { Strategy } from './Strategy';
 import { orderBook } from '../OrderBook';
+
+const logger = LogFactory.createLogger('GridTradingOld');
 
 export class GridTradingOld implements Strategy {
   rebalance: boolean;

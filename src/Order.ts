@@ -1,6 +1,8 @@
 import { STABLE_TOKEN, TRADE_TOKEN } from './const';
-import { logger } from './logger';
+import LogFactory from './logger';
 import { web3 } from './Web3Service';
+
+const logger = LogFactory.createLogger('OrderBook');
 
 export class Order {
   private static nrCount = 0;
