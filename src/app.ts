@@ -53,7 +53,7 @@ app.listen(port, () => {
 main();
 
 async function main(): Promise<void> {
-  logger.info('Bot started!');
+  logger.info(`Initializing ${strategy.name} strategy`);
   // init
   await web3.init();
 

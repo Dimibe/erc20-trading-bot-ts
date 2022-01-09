@@ -25,6 +25,10 @@ export class GridTradingOld implements Strategy {
     this.buyPowerPerGrid = this.totalBuyPower / this.gridCount;
   }
 
+  public get name() {
+    return 'Grid Trading Old';
+  }
+
   public async init(conversion: number): Promise<void> {
     logger.info(`Grids: ${this.gridCount} Size: ${this.gridSize} Buy power per grid: ${this.buyPowerPerGrid}`);
 

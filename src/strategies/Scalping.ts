@@ -22,6 +22,10 @@ export class Scalping implements Strategy {
     this.DROP_BEFORE_BUY = strategyOptions.dropBeforeBuy;
   }
 
+  public get name() {
+    return 'Scalping';
+  }
+
   async init(conversion: number): Promise<void> {
     this.high = conversion;
     this.low = conversion;
