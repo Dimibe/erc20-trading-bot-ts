@@ -8,7 +8,6 @@ export class GridTrading implements Strategy {
   rebalance: boolean;
   min: number;
   max: number;
-  gridMargin: number;
   totalBuyPower: number;
   buyPowerPerGrid: number;
   gridCount: number;
@@ -18,20 +17,20 @@ export class GridTrading implements Strategy {
     this.rebalance = strategyOptions.rebalance;
     this.min = strategyOptions.range.min;
     this.max = strategyOptions.range.max;
-    this.gridMargin = strategyOptions.gridMargin;
+    this.gridCount = strategyOptions.gridCount;
     this.totalBuyPower = strategyOptions.totalBuyPower;
-    let range = this.max - this.min;
-    let middle = range / 2 + this.min;
-    this.gridSize = middle * (this.gridMargin / 100);
-    this.gridCount = Math.ceil(range / this.gridSize);
-    this.gridSize = range / this.gridCount;
+    this.gridSize = (this.max - this.min) / this.gridCount;
     this.buyPowerPerGrid = this.totalBuyPower / this.gridCount;
   }
 
   public async init(conversion: number): Promise<void> {
     logger.info(
-      `Grids: ${this.gridCount} Size: %s Buy power per grid: %s %s`,
+      `Created %d grids with size of %s %s (%d% - %d%) and buy power per grid of %s %s`,
+      this.gridCount,
       this.gridSize.toFixed(web3.stableTokenDecimals),
+      web3.stableTokenSymbol,
+      ((this.gridSize / this.max) * 100).toFixed(3),
+      ((this.gridSize / this.min) * 100).toFixed(3),
       this.buyPowerPerGrid.toFixed(web3.stableTokenDecimals),
       web3.stableTokenSymbol,
     );

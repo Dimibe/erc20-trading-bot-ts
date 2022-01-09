@@ -8,7 +8,6 @@ export class GridTradingOld implements Strategy {
   rebalance: boolean;
   min: number;
   max: number;
-  gridMargin: number;
   totalBuyPower: number;
   buyPowerPerGrid: number;
   gridCount: number;
@@ -20,13 +19,9 @@ export class GridTradingOld implements Strategy {
     this.rebalance = strategyOptions.rebalance;
     this.min = strategyOptions.range.min;
     this.max = strategyOptions.range.max;
-    this.gridMargin = strategyOptions.gridMargin;
+    this.gridCount = strategyOptions.gridCount;
     this.totalBuyPower = strategyOptions.totalBuyPower;
-    let range = this.max - this.min;
-    let middle = range / 2 + this.min;
-    this.gridSize = middle * (this.gridMargin / 100);
-    this.gridCount = Math.ceil(range / this.gridSize);
-    this.gridSize = range / this.gridCount;
+    this.gridSize = (this.max - this.min) / this.gridCount;
     this.buyPowerPerGrid = this.totalBuyPower / this.gridCount;
   }
 
