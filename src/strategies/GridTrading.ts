@@ -37,20 +37,17 @@ export class GridTrading implements Strategy {
     );
 
     let currentGrid = this.calculateGrid(conversion);
-    let amount = (this.gridCount - currentGrid) * this.buyPowerPerGrid;
-    let total = amount / conversion;
-
-    if (this.rebalance) {
-      amount = Math.max(0, amount - (await web3.getTradeTokenBalance()) * conversion);
-    }
+    let totalAmount = (this.gridCount - currentGrid) * this.buyPowerPerGrid;
+    let currentAmount = this.rebalance ? await web3.getTradeTokenBalance() : 0;
+    let amount = Math.max(0, totalAmount - currentAmount * conversion);
 
     let order = new Order(OrderType.BUY, amount);
     if (order.amountIn > 0) {
       await orderBook.executeOrder(order, conversion);
     }
 
-    for (let i = currentGrid + 2; i <= this.gridCount; i++) {
-      let value = total / (this.gridCount - (currentGrid + 2));
+    for (let i = currentGrid + 1; i <= this.gridCount; i++) {
+      let value = totalAmount / (this.gridCount - currentGrid) / conversion;
       let sellOrder = new Order(OrderType.SELL, value, this.calculatePrice(i), order);
       orderBook.addOrder(sellOrder);
     }
@@ -66,12 +63,12 @@ export class GridTrading implements Strategy {
       let profit = order.amountOut! - this.buyPowerPerGrid;
       balanceLog.balance(`Made ${profit} ${web3.stableTokenSymbol} profit with order ${order.nr}`);
       if (order.limit !== undefined) {
-        let buyOrder = new Order(OrderType.BUY, this.buyPowerPerGrid, order.limit - 2 * this.gridSize);
+        let buyOrder = new Order(OrderType.BUY, this.buyPowerPerGrid, order.limit - this.gridSize);
         orderBook.addOrder(buyOrder);
       }
     } else if (order.orderType === OrderType.BUY) {
       if (order.limit !== undefined) {
-        let sellOrder = new Order(OrderType.SELL, order.amountOut!, order.limit + 2 * this.gridSize, order);
+        let sellOrder = new Order(OrderType.SELL, order.amountOut!, order.limit + this.gridSize, order);
         orderBook.addOrder(sellOrder);
       }
     }
