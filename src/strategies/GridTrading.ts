@@ -65,8 +65,11 @@ export class GridTrading implements Strategy {
 
   public async orderLiquidated(order: Order): Promise<void> {
     if (order.orderType === OrderType.SELL) {
-      let profit = order.amountOut! - this.buyPowerPerGrid;
-      LogFactory.balanceLog.info(`Made ${profit} ${web3.stableTokenSymbol} profit with order ${order.nr}`);
+      let totalFees = (order.getPaidFees() ?? 0) + (order.referenceOrder?.getPaidFees() ?? 0);
+      let profit = order.amountOut! - this.buyPowerPerGrid - totalFees;
+      LogFactory.balanceLog.info(
+        `Made ${profit} ${web3.stableTokenSymbol} profit with order ${order.nr}. Including fees of ${totalFees}`,
+      );
       if (order.limit !== undefined) {
         let buyOrder = new Order(OrderType.BUY, this.buyPowerPerGrid, order.limit - this.gridSize);
         orderBook.addOrder(buyOrder);
