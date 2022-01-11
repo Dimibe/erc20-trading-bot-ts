@@ -16,7 +16,6 @@ import options from './config/options.json';
 import { TransactionReceipt, TransactionResponse } from '@ethersproject/abstract-provider';
 import { BigNumber, Contract, utils } from 'ethers';
 import LogFactory from './logger';
-import axios from 'axios';
 import { Order } from './Order';
 
 const logger = LogFactory.createLogger('Web3Service');
@@ -37,8 +36,8 @@ class Web3Service {
   private static async executeSwap(
     amountIn: BigNumber,
     amountOutMin: BigNumber,
-    pair: string[],
     tokenContract: Contract,
+    order: Order,
   ): Promise<TransactionReceipt> {
     let currentGas = await this.getGasPrice();
     let gas = Math.min(MAX_GWEI, currentGas);
@@ -51,19 +50,21 @@ class Web3Service {
 
     const approveTx: TransactionResponse = await tokenContract.approve(router, amountIn, options);
     logger.log('transaction', `Approve transaction hash: ${approveTx.hash}`);
-    await approveTx.wait();
+    let txnReceipt = await approveTx.wait();
+    order.feesForApproval = Web3Service.calculateFeesPaid(txnReceipt);
     logger.log('transaction', `Swap approved.`);
 
     const swapTx: TransactionResponse = await routerContract.swapExactTokensForTokens(
       amountIn,
       amountOutMin,
-      pair,
+      [order.tokenIn, order.tokenOut],
       wallet.address,
       Date.now() + 1000 * 60 * 10,
       options,
     );
     logger.log('transaction', `Swap transaction hash: ${swapTx.hash}`);
     let tx = await swapTx.wait();
+    order.feesForSwap = Web3Service.calculateFeesPaid(txnReceipt);
     logger.log('transaction', 'Swap done!');
 
     await this.info('transaction');
@@ -86,7 +87,7 @@ class Web3Service {
       this.getSymbol(order.tokenOut),
     );
 
-    let txn = await this.executeSwap(amountIn, amountOutMin, [order.tokenIn, order.tokenOut], contract);
+    let txn = await this.executeSwap(amountIn, amountOutMin, contract, order);
 
     return txn;
   }
@@ -159,11 +160,6 @@ class Web3Service {
     return symbol;
   }
 
-  static async getEstimatedGwei() {
-    let res = await axios.get('https://gpoly.blockscan.com/gasapi.ashx?apikey=key&method=gasoracle');
-    return res.data.result.ProposeGasPrice;
-  }
-
   static getStableTokenAmountFromSwap(transaction: TransactionReceipt): number | undefined {
     return this.getTokenAmountFromSwap(transaction, STABLE_TOKEN, this.stableTokenDecimals);
   }
@@ -189,6 +185,10 @@ class Web3Service {
     logger.log(logLevel, `${coinBalance} ${options.coinName}`);
     logger.log(logLevel, `${stableTokenBalance} ${this.stableTokenSymbol}`);
     logger.log(logLevel, `${tradeTokenBalance} ${this.tradeTokenSymbol}`);
+  }
+
+  private static calculateFeesPaid(txn: TransactionReceipt) {
+    return txn.gasUsed.toNumber() * Number(utils.formatUnits(txn.effectiveGasPrice, 'ether'));
   }
 }
 

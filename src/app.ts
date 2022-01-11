@@ -50,8 +50,8 @@ app.get('/logs/:filename', (req, res) => {
 
 app.get('/botState', (_, res) => res.send(`Bot running: ${botRunning}`));
 app.get('/botState/start', (_, res) => {
-  let started = start();
-  res.send(started ? 'Bot started': 'Bot already running');
+  start();
+  res.send('Bot started');
 });
 
 app.listen(port, () => logger.info(`⚡️Server started and running at port ${port}`));
@@ -77,12 +77,8 @@ async function main(): Promise<void> {
 }
 
 function start() {
-  if (!botRunning) {
-    botRunning = true;
-    run();
-    return true;
-  }
-  return false;
+  botRunning = true;
+  run();
 }
 
 async function run(): Promise<void> {

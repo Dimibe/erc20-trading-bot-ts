@@ -21,6 +21,7 @@ class OrderBook {
     } else {
       order.amountOut = order.tokenOut == TRADE_TOKEN ? order.amountIn / conversion : order.amountIn * conversion;
     }
+    order.conversion = conversion;
     OrderBook.printSwap(order);
     return order;
   }

@@ -16,6 +16,9 @@ export class Order {
   private _transactionHash?: string;
   private _referenceOrder?: Order;
   private _limit?: number;
+  private _feesForApproval?: number;
+  private _feesForSwap?: number;
+  private _conversion?: number;
 
   constructor(orderType: OrderType, amountIn: number, limit?: number, referenceOrder?: Order) {
     this._nr = Order.nrCount++;
@@ -41,6 +44,13 @@ export class Order {
     let action = this.orderType === OrderType.SELL ? `Sell ${aIn}` : `Buy ${web3.getSymbol(this.tokenOut)} for ${aIn}`;
     let type = this.limit === undefined ? `market` : `limit: ${limit} ${web3.stableTokenSymbol}`;
     return `Nr ${this.nr}: ${action} @${type}. ${ref}`;
+  }
+
+  public getPaidFees() {
+    if (this._feesForApproval !== undefined && this._feesForSwap !== undefined && this._conversion !== undefined) {
+      return (this._feesForApproval + this._feesForSwap) * this._conversion;
+    }
+    return undefined;
   }
 
   public toString(): string {
@@ -93,6 +103,18 @@ export class Order {
 
   public set transactionHash(hash) {
     this._transactionHash = hash;
+  }
+
+  public set feesForApproval(gas: number) {
+    this._feesForApproval = gas;
+  }
+
+  public set feesForSwap(gas: number) {
+    this._feesForSwap = gas;
+  }
+
+  public set conversion(conversion: number) {
+    this._conversion = conversion;
   }
 }
 
