@@ -2,6 +2,11 @@
 
 Crypto trading bot which trades erc20 token pairs. 
 
+#### :warning: Warning:
+
+This project is only a **pure hobby project**, which came up through my interest in trading strategies and the used tech stack.
+The bot is **not used by me** and the reliability and chances of success of the strategies has **not been tested** in any way.
+
 ### Prerequisites
 
 - Node and npm/yarn installed
